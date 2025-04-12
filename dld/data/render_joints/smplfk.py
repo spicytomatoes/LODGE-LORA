@@ -569,7 +569,7 @@ class SMPLSkeleton:
 
 class SMPLX_Skeleton:
     def __init__(
-        self, device=None, batch=64, Jpath = '/data2/lrh/project/dance/Lodge/lodge_pub/data/smplx_neu_J_1.npy'
+        self, device=None, batch=64, Jpath = '/home/LODGE/data/smplx_neu_J_1.npy'
     ):
         self.parents = smplx_parents
         self.J = np.load(Jpath)

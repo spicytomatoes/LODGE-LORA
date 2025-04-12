@@ -67,7 +67,7 @@ class MovieMaker():
         SMPLH_path = "/data/human/datasets/smpl_model/smplh/SMPLH_MALE.pkl"
         SMPL_path = "/data/human/datasets/smpl_model/smpl/SMPL_MALE.pkl"
         SMPLX_path = "/data/human/datasets/smpl_model/smplx/SMPLX_NEUTRAL.npz"
-        trimesh_path = '/data2/lrh/floor/NORMAL_new.obj'
+        trimesh_path = '/home/LODGE/data/NORMAL_new.obj'
 
         if args.mode == 'smplh':
             self.smplh = SMPLH(SMPLH_path, use_pca=False, flat_hand_mean=True)

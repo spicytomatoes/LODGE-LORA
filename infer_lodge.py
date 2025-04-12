@@ -317,7 +317,7 @@ if __name__ == "__main__":
     cfg.checkpoint2 = 'exp/Local_Module/FineDance_FineTuneV2_Local/checkpoints/epoch=299.ckpt'
     cfg_coarse =  OmegaConf.load('exp/Global_Module/FineDance_Global/global_train.yaml')
     music2genre_ = music2genre("data/finedance/label_json")
-    music_dir = "data/finedance/music"  
+    music_dir = "data/finedance/music_wav"  
     print("cfg.soft", cfg.soft)
     
 

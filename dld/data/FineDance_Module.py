@@ -25,7 +25,7 @@ class FineDanceDataModule(pl.LightningDataModule):
         self.name = name
         self.kwargs = kwargs
         self.is_mm = False
-        self.smplx_fk = SMPLX_Skeleton(Jpath='/data2/lrh/project/dance/Lodge/lodge_pub/data/smplx_neu_J_1.npy', device=cfg.DEVICE)           # debug 这里的DEVICE？
+        self.smplx_fk = SMPLX_Skeleton(Jpath='/home/LODGE/data/smplx_neu_J_1.npy', device=cfg.DEVICE)           # debug 这里的DEVICE？
         
         # self.save_hyperparameters(logger=False)
         # self.njoints = 52       # 55
