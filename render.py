@@ -51,6 +51,8 @@ def ax_from_6v(q):
     ax = matrix_to_axis_angle(mat)
     return ax
 
+
+
 class MovieMaker():
     def __init__(self, save_path) -> None:
         
@@ -63,11 +65,10 @@ class MovieMaker():
         self.fps = args.fps
         self.img_size = (1200,1200)
 
-    
-        SMPLH_path = "/data/human/datasets/smpl_model/smplh/SMPLH_MALE.pkl"
-        SMPL_path = "/data/human/datasets/smpl_model/smpl/SMPL_MALE.pkl"
-        SMPLX_path = "/data/human/datasets/smpl_model/smplx/SMPLX_NEUTRAL.npz"
-        trimesh_path = '/home/LODGE/data/NORMAL_new.obj'
+        SMPLH_path = "./data/human/datasets/smpl_model/smplh/SMPLH_male.pkl"
+        SMPL_path = "./data/human/datasets/smpl_model/smpl/SMPL_MALE.pkl"
+        SMPLX_path = "./data/human/datasets/smpl_model/smplx/SMPLX_NEUTRAL.npz"
+        trimesh_path = './data/NORMAL_new.obj'
 
         if args.mode == 'smplh':
             self.smplh = SMPLH(SMPLH_path, use_pca=False, flat_hand_mean=True)
@@ -177,9 +178,25 @@ class MovieMaker():
             
             
 
-    def render_single_view(self, meshes):
+    def render_single_view(self, meshes, eye=None, center=None, up=None):
         num = len(meshes)
         color_list = []
+
+        # If camera parameters were provided, temporarily update camera
+        original_camera_node = None
+        if eye is not None and center is not None and up is not None:
+            # Find the camera node
+            for node in self.scene.nodes:
+                if node.camera is not None:
+                    original_camera_node = node
+                    original_pose = node.matrix.copy()
+                    break
+            
+            if original_camera_node:
+                # Update camera with new viewpoint
+                new_camera_pose = look_at(eye, center, up)
+                self.scene.set_pose(original_camera_node, new_camera_pose)
+
         for i in tqdm(range(num)):
             mesh_nodes = []
             for mesh in meshes[i]:
@@ -191,6 +208,11 @@ class MovieMaker():
             color_list.append(color)
             for mesh_node in mesh_nodes:
                 self.scene.remove_node(mesh_node)
+        
+        # Restore original camera position if we changed it
+        if original_camera_node and eye is not None:
+            self.scene.set_pose(original_camera_node, original_pose)
+            
         return color_list
     
     def render_imgs(self, meshes):
