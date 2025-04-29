@@ -162,7 +162,6 @@ pyperclip
 python-dotenv
 python-multipart
 pytorch-lightning
-pytorch3d
 pytz
 pywavelets
 quantulum3
