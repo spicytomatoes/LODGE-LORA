@@ -154,7 +154,7 @@ dependencies:
       - bertopic==0.15.0
       - blobfile==2.0.2
       - boilerpy3==1.0.6
-      - bvh==0.3
+      # - bvh==0.3
       - cachetools==5.3.1
       - canals==0.2.2
       - cattrs==23.1.2
