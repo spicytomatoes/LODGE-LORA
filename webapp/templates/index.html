@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LODGE-LORA Dance Generation</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .flash { background: #cee5f5; padding: 10px; border: 1px solid #aacbe2; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Generate Dance from Music</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class=flash>
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('upload_and_generate') }}">
+        <label for="music_file">Upload Music File (MP3, WAV):</label><br>
+        <input type="file" id="music_file" name="music_file" accept=".mp3,.wav,.ogg"><br><br>
+        <!-- Add dropdown for style/genre later if needed -->
+        <input type="submit" value="Upload and Generate">
+    </form>
+
+</body>
+</html>

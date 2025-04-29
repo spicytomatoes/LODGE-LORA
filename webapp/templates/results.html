@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generation Results</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        #status { margin-top: 20px; font-weight: bold; }
+        #video-container video { max-width: 80%; height: auto; margin-top: 15px; border: 1px solid #ccc; }
+        #error { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Generation Status (Job ID: {{ job_id }})</h1>
+    <p>Music: {{ job_info.music_filename }}</p>
+    <div id="status">Status: <span id="status-text">Checking...</span></div>
+    <div id="video-container" style="display: none;">
+        <h2>Generated Dance</h2>
+        <video id="result-video" controls autoplay loop>
+            Your browser does not support the video tag.
+        </video>
+        <br>
+        <a id="download-link" href="#" download>Download Video</a>
+    </div>
+    <div id="error" style="display: none;">
+        Error during generation: <span id="error-text"></span>
+    </div>
+
+    <p><a href="{{ url_for('index') }}">Generate another</a></p>
+
+    <script>
+        const jobId = "{{ job_id }}";
+        const statusText = document.getElementById('status-text');
+        const videoContainer = document.getElementById('video-container');
+        const resultVideo = document.getElementById('result-video');
+        const downloadLink = document.getElementById('download-link');
+        const errorContainer = document.getElementById('error');
+        const errorText = document.getElementById('error-text');
+
+        function checkStatus() {
+            fetch(`/status/${jobId}`)
+                .then(response => response.json())
+                .then(data => {
+                    statusText.textContent = data.status || 'Unknown';
+
+                    if (data.status === 'completed') {
+                        videoContainer.style.display = 'block';
+                        errorContainer.style.display = 'none';
+                        resultVideo.src = data.video_url;
+                        downloadLink.href = data.video_url;
+                        downloadLink.download = `dance_${jobId}.mp4`; // Suggest a filename
+                        // Stop polling
+                    } else if (data.status === 'failed') {
+                        errorContainer.style.display = 'block';
+                        videoContainer.style.display = 'none';
+                        errorText.textContent = data.error || 'An unknown error occurred.';
+                        // Stop polling
+                    } else if (data.status === 'not_found') {
+                         statusText.textContent = 'Job not found.';
+                         // Stop polling
+                    }
+                    else {
+                        // Keep polling if still queued, generating, or rendering
+                        setTimeout(checkStatus, 3000); // Poll every 3 seconds
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                    statusText.textContent = 'Error checking status';
+                    // Optionally stop polling on error or retry
+                    // setTimeout(checkStatus, 5000); // Retry after 5 seconds
+                });
+        }
+
+        // Start polling when the page loads
+        checkStatus();
+    </script>
+</body>
+</html>
