@@ -143,18 +143,18 @@ dependencies:
       - alembic==1.12.0
       - altair==5.2.0
       - aniposelib==0.4.3
-      - antlr4-python3-runtime==4.11.1
+      - antlr4-python3-runtime==4.8
       - anyio==4.2.0
       - appdirs==1.4.4
       - apptools==5.2.1
-      - audioread==3.0.1
+      - audioread==3.0.0
       - autopage==0.5.1
       - backoff==2.2.1
       - beautifulsoup4==4.12.2
       - bertopic==0.15.0
       - blobfile==2.0.2
       - boilerpy3==1.0.6
-      # - bvh==0.3
+      - bvh==0.3
       - cachetools==5.3.1
       - canals==0.2.2
       - cattrs==23.1.2
@@ -382,4 +382,3 @@ dependencies:
       - wheel==0.41.2
       - yacs==0.1.8
       - zipp==3.16.2
-prefix: /home/l/lowsf/.conda/envs/lodge
