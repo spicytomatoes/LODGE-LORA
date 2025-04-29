@@ -147,7 +147,7 @@ dependencies:
       - anyio==4.2.0
       - appdirs==1.4.4
       - apptools==5.2.1
-      - audioread==3.0.0
+      - audioread==3.0.1
       - autopage==0.5.1
       - backoff==2.2.1
       - beautifulsoup4==4.12.2
