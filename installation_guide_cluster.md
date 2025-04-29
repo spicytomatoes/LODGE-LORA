@@ -1,20 +1,15 @@
+- install conda
+
+  ```bash
+  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
+  bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
+  eval "$(/home/l/lowsf/miniconda3/bin/conda shell.bash hook)"
+  ```
+
 - setup environemnt
 
   ```bash
-  python -m venv lodge
-  source lodge/bin/activate
-  ```
-
-- install pytorch
-
-  ```bash
-  pip install torch torchvision torchaudio
-  ```
-
-- install requirements
-
-  ```bash
-  pip install -r requirements.txt
+  conda env create -f ./lodge.yaml
   ```
 
 - install pytorch3d
