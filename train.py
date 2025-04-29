@@ -9,11 +9,15 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 # from pytorch_lightning.strategies.ddp import DDPStrategy
 
+from peft import LoraConfig
+
 from dld.callback import ProgressLogger
 from dld.config import parse_args
 from dld.data.get_data import get_datasets
 from dld.models.get_model import get_module
 from dld.utils.logger import create_logger
+from lora.patch_lora import patch_local, LoRAModelCheckpoint
+
 
 
 
@@ -31,6 +35,7 @@ def main():
     with open(os.path.join(final_outdir, 'command.txt'), 'w') as f:
         f.write(command)
 
+    
     # resume
     if cfg.TRAIN.RESUME:
         resume = cfg.TRAIN.RESUME
@@ -103,6 +108,32 @@ def main():
     # create model
     model = get_module(cfg, datasets[0])
     logger.info("model {} loaded".format(cfg.model.model_type))
+    
+    if cfg.LORA.ENABLED:
+        # Parse LORA config
+        cfg.new_genre_id = cfg.LORA.NEW_GENRE_ID
+
+        cfg.mapping_lora_cfg = OmegaConf.create({
+            "r": cfg.LORA.MAPPING.R,
+            "lora_alpha": cfg.LORA.MAPPING.ALPHA,
+            "lora_dropout": cfg.LORA.MAPPING.DROPOUT,
+            "bias": "none"
+        })
+
+        cfg.decoder_lora_cfg = OmegaConf.create({
+            "r": cfg.LORA.DECODER.R,
+            "lora_alpha": cfg.LORA.DECODER.ALPHA,
+            "lora_dropout": cfg.LORA.DECODER.DROPOUT,
+            "bias": "none"
+        })
+
+        cfg.discriminator_lora_cfg = OmegaConf.create({
+            "r": cfg.LORA.DISCRIMINATOR.R,
+            "lora_alpha": cfg.LORA.DISCRIMINATOR.ALPHA,
+            "lora_dropout": cfg.LORA.DISCRIMINATOR.DROPOUT,
+            "bias": "none"
+        })
+        model = patch_local(model,cfg)
 
 
     # optimizer
@@ -113,21 +144,37 @@ def main():
     }
 
     # callbacks
-    callbacks = [
-        pl.callbacks.RichProgressBar(),
-        ProgressLogger(metric_monitor=metric_monitor),
-        # ModelCheckpoint(dirpath=os.path.join(cfg.FOLDER_EXP,'checkpoints'),filename='latest-{epoch}',every_n_epochs=1,save_top_k=1,save_last=True,save_on_train_epoch_end=True),
-        ModelCheckpoint(
-            dirpath=os.path.join(cfg.FOLDER_EXP, "checkpoints"),
-            filename="{epoch}",
-            monitor="step",
-            mode="max",
-            every_n_epochs=cfg.LOGGER.SACE_CHECKPOINT_EPOCH,
-            save_top_k=-1,      # 根据monitor保存最好的几个
-            save_last=False,
-            save_on_train_epoch_end=True,
-        ),
-    ]
+    if cfg.LORA.ENABLED:
+        callbacks = [
+            pl.callbacks.RichProgressBar(),
+            ProgressLogger(metric_monitor=metric_monitor),
+            LoRAModelCheckpoint(
+                dirpath=os.path.join(cfg.FOLDER_EXP, "checkpoints"),
+                filename="{epoch}",
+                monitor="step",
+                mode="max",
+                every_n_epochs=cfg.LOGGER.SACE_CHECKPOINT_EPOCH,
+                save_top_k=-1,  # 根据monitor保存最好的几个
+                save_last=False,
+                save_on_train_epoch_end=True,
+            ),
+        ]
+    else:
+        callbacks = [
+            pl.callbacks.RichProgressBar(),
+            ProgressLogger(metric_monitor=metric_monitor),
+            # ModelCheckpoint(dirpath=os.path.join(cfg.FOLDER_EXP,'checkpoints'),filename='latest-{epoch}',every_n_epochs=1,save_top_k=1,save_last=True,save_on_train_epoch_end=True),
+            ModelCheckpoint(
+                dirpath=os.path.join(cfg.FOLDER_EXP, "checkpoints"),
+                filename="{epoch}",
+                monitor="step",
+                mode="max",
+                every_n_epochs=cfg.LOGGER.SACE_CHECKPOINT_EPOCH,
+                save_top_k=-1,      # 根据monitor保存最好的几个
+                save_last=False,
+                save_on_train_epoch_end=True,
+            ),
+        ]
     logger.info("Callbacks initialized")
 
     if len(cfg.DEVICE) > 1:
@@ -162,13 +209,14 @@ def main():
         state_dict = torch.load(cfg.TRAIN.PRETRAINED,
                                 map_location="cpu")["state_dict"]
         # remove mismatched and unused params
-        from collections import OrderedDict
+        # from collections import OrderedDict
 
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            # if k not in ["denoiser.sequence_pos_encoding.pe"]:
-            new_state_dict[k] = v
-        model.load_state_dict(new_state_dict, strict=False)
+        # new_state_dict = OrderedDict()
+        # for k, v in state_dict.items():
+        #     # if k not in ["denoiser.sequence_pos_encoding.pe"]:
+        #     new_state_dict[k] = v
+        model.load_state_dict(state_dict, strict=False)
+        
 
     # fitting
     if cfg.TRAIN.RESUME:

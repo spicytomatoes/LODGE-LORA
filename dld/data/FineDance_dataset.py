@@ -73,6 +73,7 @@ Genres_fd = {            # Breaking
 
 def music2genre(label_dir):
     music_genre = {}
+    print("label_dir", label_dir)
     for file in os.listdir(label_dir):
         name = file.split(".")[0]
         jsonfile = os.path.join(label_dir, file)
@@ -101,7 +102,6 @@ class FineDance_Smpl(data.Dataset):
         motion_all = []
         music_all = []
         genre_list = []
-
         
         ignor_list, train_list, test_list = self.get_train_test_list(dataset = dataname)
         if self.istrain:
@@ -138,7 +138,11 @@ class FineDance_Smpl(data.Dataset):
             if 'FINEDANCE' in dataname:
                 genre = self.music2genre[name.split(".")[0]]
                 # print("genre1 ", genre)
-                genre = np.array(Genres_fd[genre])
+                if args.LORA.ENABLED:
+                    genre = np.array(args.new_genre_id)
+                    # print(f"LORA GENRE ID: {genre}")
+                else:
+                    genre = np.array(Genres_fd[genre])
                 genre = torch.from_numpy(genre).unsqueeze(0)
             elif 'AISTPP' in dataname:
                 genre = name.split('_')[0]
@@ -198,87 +202,109 @@ class FineDance_Smpl(data.Dataset):
         return motion, music, genre
     
     def get_train_test_list(self, dataset="FineDance"):
-        if dataset in ["AISTPP", "AISTPP_60FPS"]:
-            train = []
-            test = []
-            ignore = []
+        # temporary hardcode fix
+        files = os.listdir(self.motion_dir)
+        files = [f.split('.')[0] for f in files if f.endswith('.npy')]
+        files = sorted(files)
+        
+        # split train test 
+        train = []
+        test = []
+        ignore = []
+        
+        # first 80% for train, last 20% for test
+        num_train = int(len(files) * 0.8)
+        for i, fname in enumerate(files):
+            if fname in ignore:
+                continue
+            if i < num_train:
+                train.append(fname)
+            else:
+                test.append(fname)
+                
+        return ignore, train, test
+        
+        # if dataset in ["AISTPP", "AISTPP_60FPS"]:
+        #     train = []
+        #     test = []
+        #     ignore = []
 
-            train_file = open('/data2/lrh/dataset/aist/data/origin/aist_plusplus_final/splits/crossmodal_train.txt', 'r')
-            for fname in train_file.readlines():
-                train.append(fname.strip())
-            train_file.close()
+        #     train_file = open('/data2/lrh/dataset/aist/data/origin/aist_plusplus_final/splits/crossmodal_train.txt', 'r')
+        #     for fname in train_file.readlines():
+        #         train.append(fname.strip())
+        #     train_file.close()
 
-            test_file = open('/data2/lrh/dataset/aist/data/origin/aist_plusplus_final/splits/crossmodal_test.txt', 'r')
-            for fname in test_file.readlines():
-                test.append(fname.strip())
-            test_file.close()
+        #     test_file = open('/data2/lrh/dataset/aist/data/origin/aist_plusplus_final/splits/crossmodal_test.txt', 'r')
+        #     for fname in test_file.readlines():
+        #         test.append(fname.strip())
+        #     test_file.close()
                               
-            test_file = open('/data2/lrh/dataset/aist/data/origin/aist_plusplus_final/splits/crossmodal_val.txt', 'r')
-            for fname in test_file.readlines():
-                test.append(fname.strip())
-            test_file.close()
+        #     test_file = open('/data2/lrh/dataset/aist/data/origin/aist_plusplus_final/splits/crossmodal_val.txt', 'r')
+        #     for fname in test_file.readlines():
+        #         test.append(fname.strip())
+        #     test_file.close()
 
-            ignore_file = open('/data2/lrh/dataset/aist/data/origin/aist_plusplus_final/ignore_list.txt', 'r')
-            for fname in ignore_file.readlines():
-                ignore.append(fname.strip())
-            ignore_file.close()
+        #     ignore_file = open('/data2/lrh/dataset/aist/data/origin/aist_plusplus_final/ignore_list.txt', 'r')
+        #     for fname in ignore_file.readlines():
+        #         ignore.append(fname.strip())
+        #     ignore_file.close()
 
-            return ignore, train, test
+        #     return ignore, train, test
 
-        elif dataset == "AISTPP_LONG263":
-            train = []
-            test = []
-            ignore = []
-            print("modir", self.motion_dir)
-            for file in os.listdir(self.motion_dir):
-                if file[-4:] != '.npy':
-                    continue
-                file = file.split('.')[0]
-                if file.split('_')[-1] in ['mLH5', 'mJS4', 'mBR3', 'mMH2', 'mPO1', 'mWA0']:
-                    test.append(file)
-                else:
-                    train.append(file)
+        # elif dataset == "AISTPP_LONG263":
+        #     train = []
+        #     test = []
+        #     ignore = []
+        #     print("modir", self.motion_dir)
+        #     for file in os.listdir(self.motion_dir):
+        #         if file[-4:] != '.npy':
+        #             continue
+        #         file = file.split('.')[0]
+        #         if file.split('_')[-1] in ['mLH5', 'mJS4', 'mBR3', 'mMH2', 'mPO1', 'mWA0']:
+        #             test.append(file)
+        #         else:
+        #             train.append(file)
 
-            return  ignore, train, test
+        #     return  ignore, train, test
 
 
-        else:
-            all_list = []
-            train_list = []
-            for i in range(1,212):
-                all_list.append(str(i).zfill(3))
+        # else:
+        #     all_list = []
+        #     train_list = []
+        #     for i in range(1,212):
+        #         all_list.append(str(i).zfill(3))
     
-            test_list = ["063", "132", "143", "036", "098", "198", "130", "012", "211", "193", "179", "065", "137", "161", "092", "120", "037", "109", "204", "144"]
-            ignor_list = ["116", "117", "118", "119", "120", "121", "122", "123", "202"]
-            tradition_list = ['005', '007', '008', '015', '017', '018', '021', '022', '023', '024', '025', '026', '027', '028', '029', '030', '032', '032', '033', '034', '035', '036', '037', '038', '039', '040', '041', '042', '043', '044', '045', '046', '047', '048', '049', '050', '051', '072', '073', '074', '075', '076', '077', '078', '079', '080', '081', '082', '083', '104', '105', '106', '107', '108', '109', '110', '111', '112', '113', '114', '115', '116', '117', '118', '119', '120', '121', '122', '123', '126', '127', '132', '133', '134',  '135', '136', '137', '138', '139', '140', '141', '142', '143', '144', '145', '146', '147', '148', '151', '152', '153', '154', '155', '170']
-            morden_list = []
-            for one in all_list:
-                if one not in tradition_list:
-                    morden_list.append(one)
+        #     test_list = ["063", "132", "143", "036", "098", "198", "130", "012", "211", "193", "179", "065", "137", "161", "092", "120", "037", "109", "204", "144"]
+        #     ignor_list = ["116", "117", "118", "119", "120", "121", "122", "123", "202"]
+        #     tradition_list = ['005', '007', '008', '015', '017', '018', '021', '022', '023', '024', '025', '026', '027', '028', '029', '030', '032', '032', '033', '034', '035', '036', '037', '038', '039', '040', '041', '042', '043', '044', '045', '046', '047', '048', '049', '050', '051', '072', '073', '074', '075', '076', '077', '078', '079', '080', '081', '082', '083', '104', '105', '106', '107', '108', '109', '110', '111', '112', '113', '114', '115', '116', '117', '118', '119', '120', '121', '122', '123', '126', '127', '132', '133', '134',  '135', '136', '137', '138', '139', '140', '141', '142', '143', '144', '145', '146', '147', '148', '151', '152', '153', '154', '155', '170']
+        #     morden_list = []
+        #     for one in all_list:
+        #         if one not in tradition_list:
+        #             morden_list.append(one)
 
-            ignor_list = ignor_list
-            for one in all_list:
-                if one not in test_list:
-                    train_list.append(one)
+        #     ignor_list = ignor_list
+        #     for one in all_list:
+        #         if one not in test_list:
+        #             train_list.append(one)
             
-            if self.args.FINEDANCE.partial == 'full':
-                return ignor_list, train_list, test_list
-            elif self.args.FINEDANCE.partial == 'morden':
-                for one in train_list:
-                    if one in tradition_list:
-                        train_list.remove(one)
-                for one in test_list:
-                    if one in tradition_list:
-                        test_list.remove(one)
-                return ignor_list, train_list, test_list
-            elif self.args.FINEDANCE.partial == 'tradition':
-                for one in train_list:
-                    if one in morden_list:
-                        train_list.remove(one)
-                for one in test_list:
-                    if one in morden_list:
-                        test_list.remove(one)
-                return ignor_list, train_list, test_list
+        #     if self.args.FINEDANCE.partial == 'full':
+        #         return ignor_list, train_list, test_list
+        #     elif self.args.FINEDANCE.partial == 'morden':
+        #         for one in train_list:
+        #             if one in tradition_list:
+        #                 train_list.remove(one)
+        #         for one in test_list:
+        #             if one in tradition_list:
+        #                 test_list.remove(one)
+        #         return ignor_list, train_list, test_list
+        #     elif self.args.FINEDANCE.partial == 'tradition':
+        #         for one in train_list:
+        #             if one in morden_list:
+        #                 train_list.remove(one)
+        #         for one in test_list:
+        #             if one in morden_list:
+        #                 test_list.remove(one)
+        #         return ignor_list, train_list, test_list
 
 
 

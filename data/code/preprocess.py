@@ -251,12 +251,26 @@ def motion_feats_extract(moinputs_dir, mooutputs_dir, music_indir, music_outdir)
 
 
 if __name__ == "__main__":
+    import argparse
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Extract motion features")
+    parser.add_argument(
+        "--data_dir", default="data/finedance/", type=str, help="Directory containing input data"
+    )
+    
+    args = parser.parse_args()
+    data_dir = args.data_dir
+    print("data_dir", data_dir)
+    
     # Execute the feature extraction with specified directories
     motion_feats_extract(
         #moinputs_dir='/data2/lrh/dataset/fine_dance/origin/motion_feature315', 
-        moinputs_dir='data/finedance/motion/', 
-        mooutputs_dir="data/finedance/mofea319/", 
-        music_indir="data/finedance/music_npy", 
+        # mooutputs_dir="data/finedance/mofea319/", 
+        moinputs_dir=f"{data_dir}/motion",
+        mooutputs_dir=f"{data_dir}/mofea319/",
+        # music_indir="data/finedance/music_npy", 
         # music_indir="/data2/lrh/dataset/fine_dance/origin/music_feature35_edge",
-        music_outdir="data/finedance/music_npynew/",
+        music_indir=f"{data_dir}/music_npy",
+        music_outdir=f"{data_dir}/music_npynew/",
     )
