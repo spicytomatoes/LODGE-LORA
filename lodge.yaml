@@ -143,7 +143,7 @@ dependencies:
       - alembic==1.12.0
       - altair==5.2.0
       - aniposelib==0.4.3
-      - antlr4-python3-runtime==4.8
+      - antlr4-python3-runtime==4.11.1
       - anyio==4.2.0
       - appdirs==1.4.4
       - apptools==5.2.1
