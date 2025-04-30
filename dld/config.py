@@ -117,6 +117,24 @@ def parse_args(phase="train"):
             required=False,
             help="output seperate or combined npy file",
         )
+        group.add_argument(
+            "--lora_path",
+            type=str,
+            required=False,
+            help="lora path",
+        )
+        group.add_argument(
+            "--name",
+            type=str,
+            required=False,
+            help="Override the name of the experiment",
+        )
+        group.add_argument(
+            "--exp_dir",
+            type=str,
+            required=False,
+            help="experiment directory (lora only)",
+        )
 
     if phase == "render":
         group.add_argument(
@@ -193,6 +211,11 @@ def parse_args(phase="train"):
         cfg.TEST.FOLDER = params.out_dir if params.dir else cfg.TEST.FOLDER
         cfg.DEMO.REPLICATION = params.replication
         cfg.DEMO.OUTALL = params.allinone
+        cfg.LORA_PATH = params.lora_path 
+        cfg.EXP_DIR = params.exp_dir
+        
+        if params.name:
+            cfg.NAME = params.name
 
     if phase == "render":
         if params.npy:

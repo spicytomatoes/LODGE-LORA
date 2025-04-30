@@ -129,37 +129,84 @@ def patch_attention_with_lora(attn_module, lora_cfg, name_prefix=""):
 
 
 def patch_transformer_with_lora(model, lora_cfg):
+    
+    #number of layers to patch
+    n_layers = lora_cfg.n_layers
+    
+    if n_layers and n_layers == 0:
+        # No layers to patch
+        return
+        
     # Patch encoder
     if hasattr(model, "cond_encoder"):
-        for i, encoder_layer in enumerate(model.cond_encoder):
+        
+        encoder_layers = model.cond_encoder
+        
+        if n_layers:
+            layer_offset = len(encoder_layers) - n_layers
+            encoder_layers = encoder_layers[-n_layers:]
+        else:
+            layer_offset = 0
+        
+        for i, encoder_layer in enumerate(encoder_layers):
+            true_layer_idx = i + layer_offset
             patch_attention_with_lora(
                 encoder_layer.self_attn,
                 lora_cfg,
-                name_prefix=f"encoder_layer_{i}"
+                name_prefix=f"encoder_layer_{true_layer_idx}"
             )
-
+            
     # Patch decoder
     if hasattr(model, "seqTransDecoder"):
-        for i, decoder_layer in enumerate(model.seqTransDecoder.stack):
+        
+        decoder_layers = model.seqTransDecoder.stack
+        
+        if n_layers:        
+            layer_offset = len(decoder_layers) - n_layers
+            decoder_layers = decoder_layers[-n_layers:]
+        else:
+            layer_offset = 0
+
+        for i, decoder_layer in enumerate(decoder_layers):
+            true_layer_idx = i + layer_offset
             patch_attention_with_lora(
                 decoder_layer.self_attn,
                 lora_cfg,
-                name_prefix=f"decoder_layer_{i}_self"
+                name_prefix=f"decoder_layer_{true_layer_idx}_self"
             )
             patch_attention_with_lora(
                 decoder_layer.multihead_attn,
                 lora_cfg,
-                name_prefix=f"decoder_layer_{i}_cross"
+                name_prefix=f"decoder_layer_{true_layer_idx}_cross"
             )
+
             
 def patch_discriminator_tr_block_with_lora(dis_model, lora_cfg):
-    for i, block in enumerate(dis_model.tr_block.layers):
+    
+    n_layers = lora_cfg.n_layers
+    
+    if n_layers and n_layers == 0:
+        # No layers to patch
+        return
+    
+    dis_layers = dis_model.tr_block.layers
+    
+    if n_layers:
+        layer_offset = len(dis_layers) - n_layers
+        dis_layers = dis_layers[-n_layers:]
+    else:
+        layer_offset = 0
+    
+    for i, block in enumerate(dis_layers):
+        
+        true_layer_idx = i + layer_offset
+        
         ln1, attn, ln2, ff = block  # unpack 4 submodules in the ModuleList
 
         # Patch to_q
         lora_q = LoraLinear(
             base_layer=nn.Linear(attn.to_q.in_features, attn.to_q.out_features, bias=False),
-            adapter_name=f"dis_tr_block_{i}_q",
+            adapter_name=f"dis_tr_block_{true_layer_idx}_q",
             r=lora_cfg.r,
             lora_alpha=lora_cfg.lora_alpha,
             lora_dropout=lora_cfg.lora_dropout,
@@ -170,7 +217,7 @@ def patch_discriminator_tr_block_with_lora(dis_model, lora_cfg):
         # Patch to_v
         lora_v = LoraLinear(
             base_layer=nn.Linear(attn.to_v.in_features, attn.to_v.out_features, bias=False),
-            adapter_name=f"dis_tr_block_{i}_v",
+            adapter_name=f"dis_tr_block_{true_layer_idx}_v",
             r=lora_cfg.r,
             lora_alpha=lora_cfg.lora_alpha,
             lora_dropout=lora_cfg.lora_dropout,

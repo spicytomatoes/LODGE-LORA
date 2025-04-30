@@ -1,0 +1,187 @@
+NAME: LoRA_Ballet_Local_v2
+ACCELERATOR: 'gpu'
+DEVICE: [0]
+
+SEED_VALUE: 42
+Norm: True
+Discriminator: True
+DEBUG: False
+FineTune: True
+
+# === LoRA-Specific Patch ===
+LORA:
+  ENABLED: True
+  NEW_GENRE_ID: 16
+
+  MAPPING:
+    R: 4
+    ALPHA: 1
+    DROPOUT: 0.1
+
+  DECODER:
+    R: 4
+    ALPHA: 1
+    DROPOUT: 0.1
+
+  DISCRIMINATOR:
+    R: 4
+    ALPHA: 1
+    DROPOUT: 0.1
+
+TRAIN:
+  STAGE: diffusion
+  SPLIT: 'train'
+  NUM_WORKERS: 6
+  BATCH_SIZE: 32
+  START_EPOCH: 1
+  END_EPOCH: 100  # typically shorter for LoRA
+  RESUME: ''
+  PRETRAINED: '/home/LODGE/exp/Local_Module/FineDance_FineTuneV2_Local/checkpoints/epoch=299.ckpt'
+  DATASETS: ['FINEDANCE_139CUT']
+
+  OPTIM:
+    TYPE: 'Adan'
+    LR: 0.0004
+
+  ABLATION:
+    VAE_TYPE: 'no'
+    VAE_ARCH: 'encoder_decoder'
+    PE_TYPE: 'actor'
+    DIFF_PE_TYPE: 'actor'
+    SKIP_CONNECT: False
+    MLP_DIST: False
+    IS_DIST: False
+    PREDICT_EPSILON: False
+
+EVAL:
+  SPLIT: gtest
+  BATCH_SIZE: 32
+  NUM_WORKERS: 6
+TEST:
+  TEST_DIR: ''
+  CHECKPOINTS: ''
+  SPLIT: gtest
+  BATCH_SIZE: 32
+  NUM_WORKERS: 6
+  SAVE_PREDICTIONS: true
+  COUNT_TIME: false
+  REPLICATION_TIMES: 2
+  MM_NUM_SAMPLES: 100
+  MM_NUM_REPEATS: 30
+  MM_NUM_TIMES: 10
+  DIVERSITY_TIMES: 300
+  REP_I: 0
+  DATASETS:
+  - FINEDANCE_139CUT
+  FOLDER: ./experiments
+model:
+  target: modules
+  vae_type: 'no'
+  vae: true
+  model_type: Local_Module
+  condition: music
+  latent_dim:
+  - 1
+  - 256
+  ff_size: 1024
+  num_layers: 9
+  num_head: 4
+  droupout: 0.1
+  activation: gelu
+  guidance_scale: 7.5
+  guidance_uncondp: 0.1
+  diffusion:
+    target: dld.models.architectures.diffusion.GaussianDiffusion
+    params:
+      horizon: ${FINEDANCE.full_seq_len}
+      repr_dim: ${FINEDANCE.nfeats}
+      schedule: cosine
+      n_timestep: 1000
+      predict_epsilon: false
+      loss_type: l2
+      use_p2: false
+      cond_drop_prob: 0.25
+      guidance_weight: 2
+  DanceDecoder:
+    target: dld.models.architectures.model.Refine_DanceDecoder
+    params:
+      nfeats: ${FINEDANCE.nfeats}
+      seq_len: ${FINEDANCE.full_seq_len}
+      latent_dim: 512
+      ff_size: 1024
+      num_layers: 8
+      num_heads: 8
+      dropout: 0.1
+      cond_feature_dim: 35
+      activation: gelu
+  DanceDiscriminator:
+    target: dld.models.architectures.model.DanceDiscriminator
+    params:
+      nfeats: ${FINEDANCE.nfeats}
+      seq_len: ${FINEDANCE.full_seq_len}
+      latent_dim: 512
+      ff_size: 1024
+      num_layers: 8
+      num_heads: 8
+      dropout: 0.1
+      cond_feature_dim: 35
+      activation: gelu
+LOSS:
+  TYPE: smpl_loss_relative
+  LAMBDA_MSE: 0.636
+  LAMBDA_V: 2.964
+  LAMBDA_FK: 1
+  LAMBDA_FK_V: 0
+  LAMBDA_FK_A: 0
+  LAMBDA_FOOT: 10
+  LAMBDA_FC: 0
+  LAMBDA_TRANS: 0.5
+  LAMBDA_DIS: 0.1
+  DIST_SYNC_ON_STEP: true
+METRIC:
+  FORCE_IN_METER: true
+  DIST_SYNC_ON_STEP: true
+  TYPE:
+  - DanceDiffuse_Metric
+LOGGER:
+  SACE_CHECKPOINT_EPOCH: 20
+  LOG_EVERY_STEPS: 20
+  VAL_EVERY_STEPS: 20
+  TENSORBOARD: true
+  WANDB:
+    OFFLINE: false
+    PROJECT: null
+    RESUME_ID: null
+RENDER:
+  JOINT_TYPE: mmm
+  INPUT_MODE: npy
+  DIR: ''
+  NPY: ''
+  DENOISING: true
+  OLDRENDER: true
+  RES: high
+  DOWNSAMPLE: true
+  FPS: 12.5
+  CANONICALIZE: true
+  EXACT_FRAME: 0.5
+  NUM: 7
+  MODE: sequence
+  VID_EXT: mp4
+  ALWAYS_ON_FLOOR: false
+  GT: false
+DEMO:
+  MusicDir: /data2/lrh/dataset/fine_dance/origin/music
+  RENDER: false
+  EXAMPLE: null
+  use_cached_features: false
+FINEDANCE:
+  mix: false
+  full_seq_len: 256
+  windows: 8
+  is_mirror: false
+  nfeats: 139
+  njoints: 22
+  mode: single
+  partial: full
+  GENRE_NUM: 16
+FOLDER: ./experiments

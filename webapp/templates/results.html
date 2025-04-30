@@ -2,78 +2,123 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generation Results</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; }
-        #status { margin-top: 20px; font-weight: bold; }
-        #video-container video { max-width: 80%; height: auto; margin-top: 15px; border: 1px solid #ccc; }
-        #error { color: red; margin-top: 10px; }
-    </style>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>Generation Status (Job ID: {{ job_id }})</h1>
-    <p>Music: {{ job_info.music_filename }}</p>
-    <div id="status">Status: <span id="status-text">Checking...</span></div>
-    <div id="video-container" style="display: none;">
-        <h2>Generated Dance</h2>
-        <video id="result-video" controls autoplay loop>
-            Your browser does not support the video tag.
-        </video>
-        <br>
-        <a id="download-link" href="#" download>Download Video</a>
-    </div>
-    <div id="error" style="display: none;">
-        Error during generation: <span id="error-text"></span>
-    </div>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen py-8">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl">
+        <h1 class="text-2xl font-bold mb-4 text-center text-gray-800">Generation Status</h1>
+        <p class="text-sm text-gray-600 mb-6 text-center">Job ID: <code class="bg-gray-200 px-1 rounded">{{ job_id }}</code></p>
 
-    <p><a href="{{ url_for('index') }}">Generate another</a></p>
+        <div id="status-container" class="text-center p-4 border rounded-md bg-gray-50 border-gray-300">
+            <p class="text-lg font-medium text-gray-700">
+                Status: <span id="job-status" class="font-bold capitalize">{{ job_info.status }}</span>
+            </p>
+            <div id="loading-indicator" class="mt-4">
+                <!-- Simple spinner -->
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                <p class="text-sm text-gray-500 mt-2">Processing... Please wait.</p>
+            </div>
+        </div>
+
+        <div id="result-container" class="mt-6 hidden">
+            <!-- Video will be loaded here -->
+            <video id="result-video" controls class="w-full rounded shadow hidden">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+
+        <div id="error-container" class="mt-6 hidden">
+            <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded" role="alert">
+                <p class="font-bold">Error:</p>
+                <p id="error-message"></p>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="{{ url_for('index') }}" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-200">
+                Start New Generation
+            </a>
+        </div>
+    </div>
 
     <script>
         const jobId = "{{ job_id }}";
-        const statusText = document.getElementById('status-text');
-        const videoContainer = document.getElementById('video-container');
+        const statusElement = document.getElementById('job-status');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const resultContainer = document.getElementById('result-container');
         const resultVideo = document.getElementById('result-video');
-        const downloadLink = document.getElementById('download-link');
-        const errorContainer = document.getElementById('error');
-        const errorText = document.getElementById('error-text');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
 
         function checkStatus() {
             fetch(`/status/${jobId}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    statusText.textContent = data.status || 'Unknown';
+                    statusElement.textContent = data.status || 'unknown';
+                    statusElement.className = `font-bold capitalize ${getStatusColor(data.status)}`; // Add color
 
                     if (data.status === 'completed') {
-                        videoContainer.style.display = 'block';
-                        errorContainer.style.display = 'none';
+                        loadingIndicator.classList.add('hidden');
+                        errorContainer.classList.add('hidden');
+                        resultContainer.classList.remove('hidden');
                         resultVideo.src = data.video_url;
-                        downloadLink.href = data.video_url;
-                        downloadLink.download = `dance_${jobId}.mp4`; // Suggest a filename
-                        // Stop polling
+                        resultVideo.classList.remove('hidden');
+                        clearInterval(intervalId); // Stop polling
+                        console.log("Job completed. Video URL:", data.video_url);
                     } else if (data.status === 'failed') {
-                        errorContainer.style.display = 'block';
-                        videoContainer.style.display = 'none';
-                        errorText.textContent = data.error || 'An unknown error occurred.';
-                        // Stop polling
+                        loadingIndicator.classList.add('hidden');
+                        resultContainer.classList.add('hidden');
+                        errorContainer.classList.remove('hidden');
+                        errorMessage.textContent = data.error || 'An unknown error occurred.';
+                        clearInterval(intervalId); // Stop polling
+                        console.error("Job failed:", data.error);
                     } else if (data.status === 'not_found') {
-                         statusText.textContent = 'Job not found.';
-                         // Stop polling
-                    }
-                    else {
-                        // Keep polling if still queued, generating, or rendering
-                        setTimeout(checkStatus, 3000); // Poll every 3 seconds
+                        loadingIndicator.classList.add('hidden');
+                        errorContainer.classList.remove('hidden');
+                        errorMessage.textContent = 'Job ID not found.';
+                        clearInterval(intervalId); // Stop polling
+                    } else {
+                        // Still processing (queued, generating, rendering)
+                        loadingIndicator.classList.remove('hidden');
+                        resultContainer.classList.add('hidden');
+                        errorContainer.classList.add('hidden');
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching status:', error);
-                    statusText.textContent = 'Error checking status';
-                    // Optionally stop polling on error or retry
-                    // setTimeout(checkStatus, 5000); // Retry after 5 seconds
+                    statusElement.textContent = 'Error fetching status';
+                    statusElement.className = 'font-bold capitalize text-red-600';
+                    loadingIndicator.classList.add('hidden');
+                    errorContainer.classList.remove('hidden');
+                    errorMessage.textContent = `Failed to fetch status: ${error.message}`;
+                    // Optionally stop polling on fetch error, or keep trying
+                    // clearInterval(intervalId);
                 });
         }
 
-        // Start polling when the page loads
-        checkStatus();
+        function getStatusColor(status) {
+            switch (status) {
+                case 'completed': return 'text-green-600';
+                case 'failed': return 'text-red-600';
+                case 'generating':
+                case 'rendering': return 'text-blue-600';
+                case 'queued': return 'text-yellow-600';
+                default: return 'text-gray-700';
+            }
+        }
+
+        // Initial check and start polling every 3 seconds
+        checkStatus(); // Check immediately on load
+        const intervalId = setInterval(checkStatus, 3000); // Poll every 3 seconds
+
     </script>
 </body>
 </html>

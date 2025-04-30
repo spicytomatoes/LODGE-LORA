@@ -75,6 +75,9 @@ def music2genre(label_dir):
     music_genre = {}
     print("label_dir", label_dir)
     for file in os.listdir(label_dir):
+        if not file.endswith('.json'):
+            continue
+        
         name = file.split(".")[0]
         jsonfile = os.path.join(label_dir, file)
         with open(jsonfile,"r") as f:
@@ -89,6 +92,9 @@ class FineDance_Smpl(data.Dataset):
     def __init__(self, args, istrain, dataname=None):
         self.motion_dir =  eval(f"args.DATASET.{dataname.upper()}.MOTION")     
         self.music_dir = eval(f"args.DATASET.{dataname.upper()}.MUSIC")  
+        # self.split_perc = eval(f"args.DATASET.{dataname.upper()}.SPLIT_PERC")
+        self.test_list = eval(f"args.DATASET.{dataname.upper()}.TEST")
+        
         if 'FINEDANCE' in dataname:
             self.music2genre = music2genre(eval(f"args.DATASET.{dataname.upper()}.LABEL"))
 
@@ -208,19 +214,23 @@ class FineDance_Smpl(data.Dataset):
         files = sorted(files)
         
         # split train test 
-        train = []
-        test = []
+        test = self.test_list
+        # test = [t + ".npy" for t in test]
+        train = [f for f in files if f not in test]
         ignore = []
         
-        # first 80% for train, last 20% for test
-        num_train = int(len(files) * 0.8)
-        for i, fname in enumerate(files):
-            if fname in ignore:
-                continue
-            if i < num_train:
-                train.append(fname)
-            else:
-                test.append(fname)
+        # num_train = int(len(files) * self.split_perc)
+        # for i, fname in enumerate(files):
+        #     if fname in ignore:
+        #         continue
+        #     if i < num_train:
+        #         train.append(fname)
+        #     else:
+        #         test.append(fname)
+                
+        print(f"Train: {len(train)}, Test: {len(test)}")
+        print(f"Train list: {train}")
+        print(f"Test list: {test}")
                 
         return ignore, train, test
         

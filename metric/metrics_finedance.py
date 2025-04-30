@@ -1,9 +1,9 @@
 import numpy as np
 import pickle
-
+from omegaconf import OmegaConf
 from tqdm  import tqdm
-from features.kinetic import extract_kinetic_features
-from features.manual_new import extract_manual_features
+from metric.features.kinetic import extract_kinetic_features
+from metric.features.manual_new import extract_manual_features
 from scipy import linalg
 # kinetic, manual
 import torch
@@ -12,6 +12,9 @@ import argparse
 # from render import ax_to_6v
 sys.path.append(os.getcwd())
 from dld.data.render_joints.smplfk import SMPLX_Skeleton, do_smplxfk
+
+
+smplx_model = SMPLX_Skeleton(Jpath='data/smplx_neu_J_1.npy')
 
 def normalize(feat, feat2):
     mean = feat.mean(axis=0)
@@ -26,18 +29,25 @@ def normalize_one(feat):
     
     return (feat - mean) / (std + 1e-10)
 
-def quantized_metrics(predicted_pkl_root, gt_pkl_root):
-    pred_features_k = []
-    pred_features_m = []
-    gt_freatures_k = []
-    gt_freatures_m = []
+def quantized_metrics(pred_features_k, gt_freatures_k, pred_features_m, gt_freatures_m):
+    # pred_k_files = os.listdir(pred_k_root)
+    # gt_k_files = os.listdir(gt_k_root)
+    # pred_m_files = os.listdir(pred_m_root)
+    # gt_m_files = os.listdir(gt_m_root)
+    
+    # assert len(pred_k_files) == len(gt_k_files)
+    # assert len(pred_m_files) == len(gt_m_files)
 
-    pred_features_k = [np.load(os.path.join(predicted_pkl_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(predicted_pkl_root, 'kinetic_features'))]
-    pred_features_m = [np.load(os.path.join(predicted_pkl_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(predicted_pkl_root, 'manual_features_new'))]
+    # pred_features_k = [np.load(os.path.join(predicted_pkl_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(predicted_pkl_root, 'kinetic_features'))]
+    # pred_features_m = [np.load(os.path.join(predicted_pkl_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(predicted_pkl_root, 'manual_features_new'))]
     
-    gt_freatures_k = [np.load(os.path.join(gt_pkl_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(gt_pkl_root, 'kinetic_features'))]
-    gt_freatures_m = [np.load(os.path.join(gt_pkl_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(gt_pkl_root, 'manual_features_new'))]
+    # gt_freatures_k = [np.load(os.path.join(gt_pkl_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(gt_pkl_root, 'kinetic_features'))]
+    # gt_freatures_m = [np.load(os.path.join(gt_pkl_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(gt_pkl_root, 'manual_features_new'))]
     
+    # pred_features_k = [np.load(os.path.join(pred_k_root, pkl)) for pkl in pred_k_files]
+    # pred_features_m = [np.load(os.path.join(pred_m_root, pkl)) for pkl in pred_m_files]
+    # gt_freatures_k = [np.load(os.path.join(gt_k_root, pkl)) for pkl in gt_k_files]
+    # gt_freatures_m = [np.load(os.path.join(gt_m_root, pkl)) for pkl in gt_m_files]
     
     pred_features_k = np.stack(pred_features_k)  # Nx72 p40
     pred_features_m = np.stack(pred_features_m) # Nx32
@@ -156,7 +166,9 @@ def calculate_avg_distance(feature_list, mean=None, std=None):
     dist /= (n * n - n) / 2
     return dist
 
-def calc_and_save_feats(root):
+def calc_and_save_feats(root, test_list):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
     if not os.path.exists(os.path.join(root, 'kinetic_features')):
         os.mkdir(os.path.join(root, 'kinetic_features'))
     if not os.path.exists(os.path.join(root, 'manual_features_new')):
@@ -166,7 +178,7 @@ def calc_and_save_feats(root):
         if os.path.isdir(os.path.join(root, file)):
             continue
       
-        if file[-3:] == 'npy':
+        if file[-3:] == 'npy' and file in test_list:
             if file[0] == 'M':
                 continue
             data = np.load(os.path.join(root, file))
@@ -206,29 +218,43 @@ def calc_and_save_feats(root):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--modir", type=str, default='None', help="the pred motion root"
-    ) 
-    opt = parser.parse_args()
-    device = f"cuda:1"
+    # parser.add_argument('--cfg_assets', type=str, default='./configs/data/assets.yaml')
+    parser.add_argument('--gt_root', type=str, default='./data/finedance-ballet/mofea319', help='Path to the ground truth data')
+    parser.add_argument('--pred_root', type=str, default='./experiments/Local_Module/demo--ballet_base/samples_dod_inpaint_soft_ddim_2025-04-29-20-13-24/concat/npy', help='Path to the predicted data')
+    
+    args = parser.parse_args()
+    
+    # cfg = OmegaConf.load(args.cfg_assets)
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)
     smplx_model = SMPLX_Skeleton(Jpath='data/smplx_neu_J_1.npy')
-    # mod = '_relative'
-    # mod = '_global'
 
-
-    gt_root = 'data/finedance/mofea319'
-    pred_root = '/data2/lrh/project/dance/Lodge/lodge_pub/experiments/Local_Module/FineDance_FineTuneV2_Local/samples_dod_2999_299_inpaint_soft_ddim_notranscontrol_2024-03-16-04-29-01/concat/npy'
-    print('Calculating and saving features')
-
-
-    if opt.modir != 'None':
-        pred_root = opt.modir
-    # calc_and_save_feats(gt_root)
-    calc_and_save_feats(pred_root)
+    pred_root = args.pred_root
+    gt_root = args.gt_root
+    
+    files = os.listdir(pred_root)
+    files = [f for f in files if f.endswith('.npy')]
+    
+    test_list = files
+            
+    print('test_list', test_list)
+    
+    calc_and_save_feats(gt_root, test_list)
+    calc_and_save_feats(pred_root, test_list)
     
     print('Calculating metrics')
     print("gt_root", gt_root)
     print("pred_root", pred_root)
-    print(quantized_metrics(pred_root, gt_root))
+    
+    # load files
+    
+    pred_features_k = [np.load(os.path.join(pred_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'kinetic_features'))]
+    pred_features_m = [np.load(os.path.join(pred_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'manual_features_new'))]
+    
+    gt_freatures_k = [np.load(os.path.join(gt_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(gt_root, 'kinetic_features'))]
+    gt_freatures_m = [np.load(os.path.join(gt_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(gt_root, 'manual_features_new'))]
+    
+    print(quantized_metrics(pred_features_k, gt_freatures_k, pred_features_m, gt_freatures_m))
     print("gt_root", gt_root)
     print("pred_root", pred_root)

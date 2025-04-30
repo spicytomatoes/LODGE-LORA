@@ -11,6 +11,7 @@ exp
 dance_results
 data/finedance
 data/finedance-kpop
+data/finedance-*
 data/human
 
 # C extensions

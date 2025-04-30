@@ -10,6 +10,7 @@ from multiprocessing.sharedctypes import Value
 from pathlib import Path
 from functools import cmp_to_key
 from tempfile import TemporaryDirectory
+print("1")
 
 import numpy as np
 import torch, glob, random
@@ -28,6 +29,8 @@ from dld.data.render_joints.smplfk import ax_from_6v, ax_to_6v
 from dld.data.FineDance_dataset import music2genre, Genres_fd
 
 from lora.patch_lora import patch_local
+
+from metric.metrics_finedance import quantized_metrics, calc_and_save_feats
 
 
 def swap_left_right(data):   
@@ -159,7 +162,7 @@ def split_list(lst, N):
     return sublists
 
 
-def test(cfg):
+def test(cfg, output_dir):
     count = 1
     length_co = cfg.length1
     length_fi = cfg.length2
@@ -241,8 +244,6 @@ def test(cfg):
 
         file_name = file[:-4]
         mufile = os.path.join(music_dir, file)
-        
-        print("mufile", mufile)
 
         if cfg.DEMO.use_cached_features:     # cfg.DEMO.use_cached_features:
             music_fea_full = np.load(mufile)
@@ -250,12 +251,12 @@ def test(cfg):
             music_fea_full, peakidx = extract_music35(fpath=mufile)
         
         print("music_fea_full", music_fea_full.shape)
-        local_num = music_fea_full.shape[0] // cfg.length2
         
         if music_fea_full.shape[0] < 1024:
             print(f"Skipping {file_name} as it is too short")   
             continue
         
+        local_num = music_fea_full.shape[0] // cfg.length2
         music_fea_full = music_fea_full[:local_num * cfg.length2]
 
         global_num = local_num // (int(cfg.length1/cfg.length2))
@@ -279,8 +280,6 @@ def test(cfg):
             else:
                 music_fea_cat = torch.cat([music_fea_cat, music_fea], dim=0)
                 all_filenames_cat = all_filenames_cat + [file_name + 'g' + str(gi).zfill(3) + 'g']*count
-                
-            print("music_fea_cat", gi, music_fea_cat.shape)
 
         fk_out = None
         fk_out = output_dir
@@ -365,7 +364,7 @@ if __name__ == "__main__":
 
     cfg = parse_args(phase="demo")
     cfg.FOLDER = cfg.TEST.FOLDER
-    cfg.NAME = "demo--" + cfg.NAME
+    cfg.NAME = "eval--" + cfg.NAME
     cfg.length1 = 1024
     cfg.length2 = 256
     cfg.checkpoint1 = 'exp/Global_Module/FineDance_Global/checkpoints/epoch=2999.ckpt'
@@ -385,34 +384,78 @@ if __name__ == "__main__":
     all_cond = []
     all_filenames = []
     
-    output_dir = Path(os.path.join(cfg.FOLDER, str(cfg.model.model_type), str(cfg.NAME),
-                     "samples_dod_" + setmode + "_" + cfg.TIME))
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_parent_dir = Path(os.path.join(cfg.FOLDER, str(cfg.model.model_type), str(cfg.NAME)))
+    output_parent_dir.mkdir(parents=True, exist_ok=True)
 
     command = ' '.join(sys.argv)
-    with open(os.path.join(output_dir, 'command.txt'), 'a') as f:
+    with open(os.path.join(output_parent_dir, 'command.txt'), 'a') as f:
         f.write(command)
 
-    # test_list = ["063", "193", "132", "143", "036", "098", "198", "130", "012", "120",  "179", "065", "137", "161", "092",  "037", "109", "204", "144", "211"]  
-    
-    # file_list = os.listdir(music_dir)
-    # file_list = sorted(file_list)
-    # file_list = [file.split(".")[0] for file in file_list]
-    # test_list = []
-    # split_perc = eval(f"cfg.DATASET.{dataname.upper()}.SPLIT_PERC")
+    file_list = os.listdir(music_dir)
+    file_list = sorted(file_list)
+    file_list = [file.split(".")[0] for file in file_list]
     test_list = eval(f"cfg.DATASET.{dataname.upper()}.TEST")
+    # split_perc = eval(f"cfg.DATASET.{dataname.upper()}.SPLIT_PERC")
     
-    # # first part of split is train, second part is test
+    # first part of split is train, second part is test
     # for i in range(len(file_list)):
-    #     if i < int(len(file_list) * split_perc):
+    #     if i < int(len(file_list) * 0.5):
     #         continue
     #     else:
     #         test_list.append(file_list[i])
-
-    # test_list = ['5']
             
     print("test_list", test_list)
-
+    test_list_npy = [f + '.npy' for f in test_list]
     
-    test(cfg)
+    # calculate the ground truth features
+    gt_dir = eval(f"cfg.DATASET.{dataname.upper()}.MOTION")
+    calc_and_save_feats(gt_dir, test_list_npy)
+    gt_freatures_k = [np.load(os.path.join(gt_dir, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(gt_dir, 'kinetic_features'))]
+    gt_freatures_m = [np.load(os.path.join(gt_dir, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(gt_dir, 'manual_features_new'))]
+        
+    
+    exp_dir = cfg.EXP_DIR
+    lora_dir = os.path.join(exp_dir, "checkpoints")
+    loras = os.listdir(lora_dir)
+    loras = sorted(loras, key=lambda x: int(x.split('=')[1].split('.')[0]))
+    
+    print("lora checkpoints:", loras)
+    
+    metrics = {}
+    
+    for lora_path in loras:    
+        cfg.LORA_PATH = os.path.join(lora_dir, lora_path)
+        output_dir = os.path.join(output_parent_dir, lora_path.split('.')[0])
+        test(cfg, output_dir)
+        concat_res(output_dir)
+        pred_root = os.path.join(output_dir, 'concat', 'npy')
+        calc_and_save_feats(pred_root, test_list_npy)
+        print(f"inference done for {lora_path}")
+        
+        # evaluate lora
+        pred_features_k = [np.load(os.path.join(pred_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'kinetic_features'))]
+        pred_features_m = [np.load(os.path.join(pred_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'manual_features_new'))] 
+
+        metrics[lora_path] = quantized_metrics(pred_features_k, gt_freatures_k, pred_features_m, gt_freatures_m)
+        print(f"metrics for {lora_path}: {metrics[lora_path]}")
+        
+    # base model
+    cfg.LORA_PATH = None
+    output_dir = os.path.join(output_parent_dir, "base_model")
+    test(cfg, output_dir)
     concat_res(output_dir)
+    pred_root = os.path.join(output_dir, 'concat', 'npy')
+    calc_and_save_feats(pred_root, test_list_npy)
+    print("inference done for base model")
+    
+    # Evaluate base model
+    pred_features_k = [np.load(os.path.join(pred_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'kinetic_features'))]
+    pred_features_m = [np.load(os.path.join(pred_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'manual_features_new'))]
+    metrics["base_model"] = quantized_metrics(pred_features_k, gt_freatures_k, pred_features_m, gt_freatures_m)
+    
+    print(f"metrics for base model: {metrics['base_model']}")
+    print("------------ METRIC SUMMARY ------------")
+    print("metrics", metrics)
+    
+    
+    

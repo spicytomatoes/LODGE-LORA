@@ -1,32 +1,448 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <title>LODGE-LORA Dance Generation</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; }
-        .flash { background: #cee5f5; padding: 10px; border: 1px solid #aacbe2; margin-bottom: 10px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generate Dance Animation</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Dropzone.js CSS Removed -->
+  <style>
+    /* Base body style */
+    body {
+      background-color: #f1f5f9;
+      /* slate-100 */
+      color: #0f172a;
+      /* slate-900 */
+    }
+
+    /* Card container */
+    .card {
+      background-color: #ffffff;
+      /* white */
+      border: 1px solid #e2e8f0;
+      /* slate-200 */
+      border-radius: 0.5rem;
+      /* rounded-lg */
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+      /* shadow-md */
+    }
+
+    /* Input/Select base styles */
+    .input-base {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      /* py-2 px-3 */
+      border: 1px solid #cbd5e1;
+      /* slate-300 */
+      border-radius: 0.375rem;
+      /* rounded-md */
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      /* shadow-sm */
+      font-size: 0.875rem;
+      /* text-sm */
+      line-height: 1.25rem;
+      color: #0f172a;
+      /* slate-900 */
+      background-color: #ffffff;
+      /* white */
+      height: 41px;
+    }
+
+    .input-base:focus {
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      border-color: #94a3b8;
+      /* slate-400 */
+      box-shadow: 0 0 0 2px #f1f5f9;
+      /* ring-2 ring-slate-100 */
+    }
+
+    .input-base::placeholder {
+      color: #64748b;
+      /* slate-500 */
+    }
+
+    /* File Input Specific Styling */
+    .input-file {
+      display: block;
+      width: 100%;
+      font-size: 0.875rem;
+      /* text-sm */
+      color: #475569;
+      /* slate-600 */
+      border: 1px solid #cbd5e1;
+      /* slate-300 */
+      border-radius: 0.375rem;
+      /* rounded-md */
+      padding: 0.3rem;
+      /* Adjust padding as needed */
+      cursor: pointer;
+    }
+
+    /* Style the button that appears for file input */
+    .input-file::file-selector-button {
+      margin-right: 1rem;
+      /* mr-4 */
+      padding: 0.5rem 1rem;
+      /* py-2 px-4 */
+      border-radius: 0.375rem;
+      /* rounded-md */
+      border: none;
+      font-size: 0.875rem;
+      /* text-sm */
+      font-weight: 600;
+      /* font-semibold */
+      background-color: #f1f5f9;
+      /* bg-slate-100 */
+      color: #334155;
+      /* text-slate-700 */
+      transition: background-color 0.2s ease;
+    }
+
+    .input-file::file-selector-button:hover {
+      background-color: #e2e8f0;
+      /* bg-slate-200 */
+    }
+
+    .input-file:focus {
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      border-color: #94a3b8;
+      /* slate-400 */
+      box-shadow: 0 0 0 2px #f1f5f9;
+      /* ring-2 ring-slate-100 */
+    }
+
+    /* Button base styles */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
+      /* py-2 px-4 */
+      border-radius: 0.375rem;
+      /* rounded-md */
+      font-size: 0.875rem;
+      /* text-sm */
+      font-weight: 500;
+      /* font-medium */
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .btn:focus {
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      box-shadow: 0 0 0 2px #f1f5f9;
+      /* ring-2 ring-slate-100 */
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Primary Button */
+    .btn-primary {
+      background-color: #0f172a;
+      /* slate-900 */
+      color: #ffffff;
+      /* white */
+      border-color: #0f172a;
+      /* slate-900 */
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #1e293b;
+      /* slate-800 */
+      border-color: #1e293b;
+      /* slate-800 */
+    }
+
+    /* Secondary/Toggle Button */
+    .btn-secondary {
+      background-color: #ffffff;
+      /* white */
+      color: #0f172a;
+      /* slate-900 */
+      border-color: #cbd5e1;
+      /* slate-300 */
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #f8fafc;
+      /* slate-50 */
+    }
+
+    .btn-secondary.active {
+      background-color: #f1f5f9;
+      /* slate-100 */
+      border-color: #94a3b8;
+      /* slate-400 */
+      color: #0f172a;
+      /* slate-900 */
+    }
+
+    /* Toggle Button Group */
+    .toggle-group {
+      display: inline-flex;
+      border-radius: 0.375rem;
+      /* rounded-md */
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      /* shadow-sm */
+    }
+
+    .toggle-group .btn-secondary {
+      border-radius: 0;
+      /* Remove individual radius */
+      border-left-width: 0;
+      /* Remove inner borders */
+    }
+
+    .toggle-group .btn-secondary:first-child {
+      border-top-left-radius: 0.375rem;
+      /* rounded-l-md */
+      border-bottom-left-radius: 0.375rem;
+      border-left-width: 1px;
+      /* Add border back to first */
+    }
+
+    .toggle-group .btn-secondary:last-child {
+      border-top-right-radius: 0.375rem;
+      /* rounded-r-md */
+      border-bottom-right-radius: 0.375rem;
+    }
+
+    /* Flash Message */
+    .flash-message {
+      padding: 0.75rem 1rem;
+      /* p-3 px-4 */
+      margin-bottom: 1rem;
+      /* mb-4 */
+      border: 1px solid #e2e8f0;
+      /* slate-200 */
+      background-color: #f8fafc;
+      /* slate-50 */
+      color: #334155;
+      /* slate-700 */
+      border-radius: 0.375rem;
+      /* rounded-md */
+      font-size: 0.875rem;
+      /* text-sm */
+    }
+
+    .flash-message p {
+      margin: 0;
+    }
+  </style>
 </head>
-<body>
-    <h1>Generate Dance from Music</h1>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class=flash>
-          {% for message in messages %}
-            <p>{{ message }}</p>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+  <div class="card p-6 sm:p-8 w-full max-w-lg">
+    <h1 class="text-xl sm:text-2xl font-semibold mb-6 text-center text-slate-900">
+      Generate Dance Animation
+    </h1>
 
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('upload_and_generate') }}">
-        <label for="music_file">Upload Music File (MP3, WAV):</label><br>
-        <input type="file" id="music_file" name="music_file" accept=".mp3,.wav,.ogg"><br><br>
-        <!-- Add dropdown for style/genre later if needed -->
-        <input type="submit" value="Upload and Generate">
-    </form>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %} {% if messages %}
+    <div class="flash-message" role="alert">
+      {% for message in messages %}
+      <p>{{ message }}</p>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
 
+    <!-- Input Mode Toggle -->
+
+    <div class="mb-6 text-center">
+      <div class="toggle-group w-[100%]" role="group">
+        <button type="button" id="toggle-upload" class="flex w-[100%] btn btn-secondary active">
+          Upload
+        </button>
+        <button type="button" id="toggle-select" class="flex w-[100%] btn btn-secondary">
+          Predefined
+        </button>
+      </div>
+    </div>
+
+
+    <!-- Upload Section (Standard Input) -->
+    <div id="upload-section" class="mb-4">
+      <form id="upload-form" method="post" action="{{ url_for('upload_and_generate') }}" enctype="multipart/form-data">
+        <label for="music-file-input" class="block text-sm font-medium text-slate-700 mb-1 text-center">
+          Upload a WAV or MP3 music file:
+        </label>
+        <input id="music-file-input" name="music_file" type="file" accept=".wav,.mp3" required class="input-file" />
+        <!-- Hidden input for genre, will be populated by JS -->
+        <input type="hidden" name="genre" id="upload-genre-hidden">
+      </form>
+    </div>
+
+    <!-- Select Predefined Section -->
+    <div id="select-section" class="hidden mb-4">
+      <form id="select-form" method="post" action="{{ url_for('upload_and_generate') }}">
+        <label for="preselected-audio" class="block text-sm font-medium text-slate-700 mb-1 text-center">Select a
+          preselected audio file:</label>
+        <select id="preselected-audio" name="selected_audio_path" class="input-base mb-6" <!-- Added margin bottom -->
+          >
+          <option value="" disabled selected>-- Select Audio --</option>
+          <!-- Example Options: Populate this from Flask ideally -->
+          <option value="preselected_audio/song1.mp3">
+            Song 1 (Pop Example)
+          </option>
+          <option value="preselected_audio/song2.wav">
+            Song 2 (Electronic Example)
+          </option>
+          <!-- Add more options here -->
+        </select>
+        <!-- Hidden input for genre, will be populated by JS -->
+        <input type="hidden" name="genre" id="select-genre-hidden">
+      </form>
+    </div>
+
+    <!-- Genre Selection (Common for both modes) -->
+    <div class="mb-6">
+      <label for="genre-select" class="block text-sm font-medium text-slate-700 mb-1 text-center">Select Genre:</label>
+      <select id="genre-select" class="input-base" name="genre_selector" <!-- Changed name to avoid conflict if forms
+        submitted directly -->
+        >
+        <option value="" disabled selected>-- Select Genre --</option>
+        <option value="pop">Pop</option>
+        <option value="rock">Rock</option>
+        <option value="jazz">Jazz</option>
+        <option value="electronic">Electronic</option>
+      </select>
+    </div>
+
+    <!-- Generate Button -->
+    <div class="text-center">
+      <button id="generate-button" type="button" class="btn btn-primary w-full sm:w-auto" disabled>
+        Generate
+      </button>
+    </div>
+
+    <p class="mt-6 text-xs text-slate-500 text-center">Powered by LODGE-LORA</p>
+  </div>
+
+  <!-- Dropzone.js JS Removed -->
+  <script>
+    const uploadButton = document.getElementById("toggle-upload");
+    const selectButton = document.getElementById("toggle-select");
+    const uploadSection = document.getElementById("upload-section");
+    const selectSection = document.getElementById("select-section");
+    const generateButton = document.getElementById("generate-button");
+    const musicFileInput = document.getElementById("music-file-input");
+    const preselectedAudio = document.getElementById("preselected-audio");
+    const genreSelect = document.getElementById("genre-select");
+    const uploadForm = document.getElementById("upload-form");
+    const selectForm = document.getElementById("select-form");
+    const uploadGenreHidden = document.getElementById("upload-genre-hidden");
+    const selectGenreHidden = document.getElementById("select-genre-hidden");
+
+
+    let isUploadMode = true; // Start in upload mode
+
+    function checkGenerateButtonState() {
+      const genreSelected = genreSelect.value !== "";
+      let audioReady = false;
+
+      if (isUploadMode) {
+        // Check if the file input has a file selected
+        audioReady = musicFileInput && musicFileInput.files.length > 0;
+      } else {
+        audioReady = preselectedAudio.value !== "";
+      }
+
+      generateButton.disabled = !(audioReady && genreSelected);
+    }
+
+    // --- Toggle Logic ---
+    uploadButton.addEventListener("click", () => {
+      if (!isUploadMode) {
+        isUploadMode = true;
+        uploadButton.classList.add("active");
+        selectButton.classList.remove("active");
+        uploadSection.classList.remove("hidden");
+        selectSection.classList.add("hidden");
+        // Reset the other input type if needed (optional)
+        // preselectedAudio.value = "";
+        checkGenerateButtonState();
+      }
+    });
+
+    selectButton.addEventListener("click", () => {
+      if (isUploadMode) {
+        isUploadMode = false;
+        uploadButton.classList.remove("active");
+        selectButton.classList.add("active");
+        uploadSection.classList.add("hidden");
+        selectSection.classList.remove("hidden");
+        // Reset the other input type if needed (optional)
+        // musicFileInput.value = null; // Clear file input
+        checkGenerateButtonState();
+      }
+    });
+
+    // --- Event Listeners for Enabling Generate Button ---
+    musicFileInput.addEventListener("change", checkGenerateButtonState);
+    preselectedAudio.addEventListener("change", checkGenerateButtonState);
+    genreSelect.addEventListener("change", checkGenerateButtonState);
+
+    // --- Generate Button Logic ---
+    generateButton.addEventListener("click", function () {
+      const selectedGenre = genreSelect.value;
+      if (!selectedGenre) {
+        alert("Please select a genre."); // Basic validation
+        return;
+      }
+
+      generateButton.disabled = true; // Disable button during processing
+      generateButton.textContent = "Processing...";
+
+      if (isUploadMode) {
+        // Ensure a file is actually selected
+        if (!musicFileInput || musicFileInput.files.length === 0) {
+          alert("Please upload an audio file.");
+          generateButton.disabled = false;
+          generateButton.textContent = "Generate";
+          return;
+        }
+        // Set the hidden genre input value
+        uploadGenreHidden.value = selectedGenre;
+        console.log(
+          "Upload mode: Submitting form with file and genre:",
+          selectedGenre
+        );
+        uploadForm.submit(); // Submit the form containing the file input
+
+      } else {
+        // Select mode
+        const selectedAudioPath = preselectedAudio.value;
+        if (!selectedAudioPath) {
+          alert("Please select a preselected audio file.");
+          generateButton.disabled = false; // Re-enable
+          generateButton.textContent = "Generate";
+          return;
+        }
+        // Set the hidden genre input value
+        selectGenreHidden.value = selectedGenre;
+        console.log(
+          "Select mode: Submitting form with selected audio and genre:",
+          selectedAudioPath,
+          selectedGenre
+        );
+        selectForm.submit(); // Submit the form containing the select dropdown
+      }
+    });
+
+    // Initial check
+    checkGenerateButtonState();
+
+  </script>
 </body>
+
 </html>

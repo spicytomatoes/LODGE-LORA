@@ -182,21 +182,21 @@ class Local_Module(BaseModel):
                     for i in range(cond.shape[0]):
                         if cond.shape[1] == 256:
                             mocond_1 = orikey[i][:4,:]
-                            print("orikey i .shape", orikey[i].shape)
-                            print("before is mocond_1[:, 4]", mocond_1[:, 4])
-                            print("before is mocond_1[:, 6]", mocond_1[:, 6])
+                            # print("orikey i .shape", orikey[i].shape)
+                            # print("before is mocond_1[:, 4]", mocond_1[:, 4])
+                            # print("before is mocond_1[:, 6]", mocond_1[:, 6])
                             mocond_1[:, 4]  = mocond_1[:, 4] - mocond_1[:1, 4]  
                             mocond_1[:, 6]  = mocond_1[:, 6] - mocond_1[:1, 6]  
-                            print("after is mocond_1[:, 4]", mocond_1[:, 4])
-                            print("after is mocond_1[:, 6]", mocond_1[:, 6])
+                            # print("after is mocond_1[:, 4]", mocond_1[:, 4])
+                            # print("after is mocond_1[:, 6]", mocond_1[:, 6])
                             mocond_2 = orikey[i][-4:,:]
                             mocond_2[:, 4]  = mocond_2[:, 4] - mocond_2[:1, 4]  
                             mocond_2[:, 6]  = mocond_2[:, 6] - mocond_2[:1, 6]   
                             mid = torch.from_numpy(orikey[i][4:-4]).to(cond)
                             Mmid_pose = swap_left_right(mid[:, 7:])
-                            print("Mmid_pose.shape", Mmid_pose.shape)
+                            # print("Mmid_pose.shape", Mmid_pose.shape)
                             Mmid_pose = ax_to_6v(Mmid_pose).view(-1, 132)
-                            print("Mmid_pose.shape", Mmid_pose.shape)
+                            # print("Mmid_pose.shape", Mmid_pose.shape)
                             # Mmid_pose = Mmid_pose.view(Mmid_pose.shape[0], -1)
                             Mmid_root = mid[:, [4,5,6]].clone()
                             Mmid_root[:,0] *= -1
@@ -226,7 +226,7 @@ class Local_Module(BaseModel):
                             constraint["mask"][i, -4:, 7:] =1
                         elif cond.shape[1] == 128:
                             mocond_1 = orikey[i][:4,:]
-                            print("orikey i .shape", orikey[i].shape)
+                            # print("orikey i .shape", orikey[i].shape)
                             # mocond_1[:, [4,6]]  = mocond_1[:, [4,6]] - mocond_1[:1, [4,6]]  
                             mocond_1[:, 4]  = mocond_1[:, 4] - mocond_1[:1, 4]  
                             mocond_1[:, 6]  = mocond_1[:, 6] - mocond_1[:1, 6]  
@@ -244,9 +244,9 @@ class Local_Module(BaseModel):
                             # Mmid_root[:,0] *= -1
                             # Mmid_foot = torch.cat( [mid[:, 1:2], mid[:, 0:1], mid[:, 3:4], mid[:, 2:3] ] , dim=-1)
                             # Mmid = torch.cat([Mmid_foot, Mmid_root, Mmid_pose], dim=-1)
-                            print("orikey[i]", orikey[i].shape)
-                            print("orikey len", len(orikey))
-                            print("mid.shape", mid.shape)
+                            # print("orikey[i]", orikey[i].shape)
+                            # print("orikey len", len(orikey))
+                            # print("mid.shape", mid.shape)
                             # sys.exit(0)
                             assert mid.shape[0] == 16
                             constraint["value"][i, :4, :] = torch.from_numpy(mocond_1).to(cond)

@@ -124,6 +124,7 @@ def main():
             "r": cfg.LORA.DECODER.R,
             "lora_alpha": cfg.LORA.DECODER.ALPHA,
             "lora_dropout": cfg.LORA.DECODER.DROPOUT,
+            "n_layers": cfg.LORA.DECODER.get("N_LAYERS", None),
             "bias": "none"
         })
 
@@ -131,6 +132,7 @@ def main():
             "r": cfg.LORA.DISCRIMINATOR.R,
             "lora_alpha": cfg.LORA.DISCRIMINATOR.ALPHA,
             "lora_dropout": cfg.LORA.DISCRIMINATOR.DROPOUT,
+            "n_layers": cfg.LORA.DISCRIMINATOR.get("N_LAYERS", None),
             "bias": "none"
         })
         model = patch_local(model,cfg)
