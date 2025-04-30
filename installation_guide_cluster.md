@@ -1,6 +1,6 @@
-conda env update --file .lodge.yaml --prune
+conda env update --file ./lodge.yaml --prune
 
-conda create -n "lodge" python=3.8.20conda create -n "lodge" python=3.8.20
+conda create -n "lodge" python=3.8.20
 - login into the cluster with GPU
 - enter following command
 
