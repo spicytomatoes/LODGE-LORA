@@ -1,4 +1,4 @@
-NAME: LoRA_Ballet_Local_v3
+NAME: LoRA_Chinese_Local_v4
 ACCELERATOR: 'gpu'
 DEVICE: [0]
 
@@ -22,21 +22,21 @@ LORA:
     R: 4
     ALPHA: 1
     DROPOUT: 0
-    N_LAYERS: 1
+    N_LAYERS: 3
 
   DISCRIMINATOR:
     R: 4
     ALPHA: 1
     DROPOUT: 0
-    N_LAYERS: 0
+    N_LAYERS: 2
 
 TRAIN:
   STAGE: diffusion
   SPLIT: 'train'
   NUM_WORKERS: 6
-  BATCH_SIZE: 4
+  BATCH_SIZE: 16
   START_EPOCH: 1
-  END_EPOCH: 200  # typically shorter for LoRA
+  END_EPOCH: 20  # typically shorter for LoRA
   RESUME: ''
   PRETRAINED: '/home/LODGE/exp/Local_Module/FineDance_FineTuneV2_Local/checkpoints/epoch=299.ckpt'
   DATASETS: ['FINEDANCE_139CUT']
@@ -146,8 +146,8 @@ METRIC:
   TYPE:
   - DanceDiffuse_Metric
 LOGGER:
-  SACE_CHECKPOINT_EPOCH: 10
-  LOG_EVERY_STEPS: 10
+  SACE_CHECKPOINT_EPOCH: 2
+  LOG_EVERY_STEPS: 2
   VAL_EVERY_STEPS: 10
   TENSORBOARD: true
   WANDB:
