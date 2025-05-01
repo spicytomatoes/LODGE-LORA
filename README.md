@@ -40,7 +40,7 @@ Note: For best performance, select videos with:
 * no holding of props
 
 Install [FFmpeg](https://www.ffmpeg.org/) and run this command:
-> python download_videos.py -txt_path [path to *.txt* file] -ffmpeg_path [path to ffmpeg folder]
+> python download_videos.py [path to *.txt* file] [path to ffmpeg executable]
 
 This will create a folder with the same name as the *.txt* file containing all the downloaded videos.
 
