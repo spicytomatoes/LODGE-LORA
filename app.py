@@ -45,8 +45,8 @@ def generate_video(audio_path, genre):
     file_name = audio_path.split('.')[0]
     mp4_name = file_name + '.mp4'
 
-    output_path = f'demo/{mp4_name}'
-    timeout = 180  # seconds
+    output_path = f'demo/{mp4_name}_video.mp4'
+    timeout = 400  # seconds
     start_time = time.time()
     while not os.path.exists(output_path):
         print("Generating")
