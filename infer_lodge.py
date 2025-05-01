@@ -234,12 +234,20 @@ def test(cfg):
 
     
     # elif opt.wavdir != 'None':
-    for file in os.listdir(music_dir):
+    if cfg.MUSIC_PATH:
+        music_list = [cfg.MUSIC_PATH]
+    else:
+        music_list = os.listdir(music_dir)
+
+    for file in music_list:
         flag = 0
         if not file.split(".")[0] in test_list:
             continue
 
         file_name = file[:-4]
+        if cfg.MUSIC_PATH:
+            music_dir = "./static/uploads"
+
         mufile = os.path.join(music_dir, file)
         
         print("mufile", mufile)
@@ -247,6 +255,7 @@ def test(cfg):
         if cfg.DEMO.use_cached_features:     # cfg.DEMO.use_cached_features:
             music_fea_full = np.load(mufile)
         else:
+            print("extracting features")
             music_fea_full, peakidx = extract_music35(fpath=mufile)
         
         print("music_fea_full", music_fea_full.shape)
@@ -385,8 +394,14 @@ if __name__ == "__main__":
     all_cond = []
     all_filenames = []
     
-    output_dir = Path(os.path.join(cfg.FOLDER, str(cfg.model.model_type), str(cfg.NAME),
-                     "samples_dod_" + setmode + "_" + cfg.TIME))
+    if cfg.TEST.FOLDER and os.path.isdir(cfg.TEST.FOLDER):
+        output_dir = Path(cfg.TEST.FOLDER).resolve() # Use absolute path
+        print(f"Using provided output directory: {output_dir}")
+    else:
+        output_dir = Path(os.path.join(cfg.FOLDER, str(cfg.model.model_type), str(cfg.NAME),
+                        "samples_dod_" + setmode + "_" + cfg.TIME))
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
     output_dir.mkdir(parents=True, exist_ok=True)
 
     command = ' '.join(sys.argv)
