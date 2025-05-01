@@ -3,6 +3,8 @@ Most existing music-to-dance generation research relies heavily on the AIST++ da
 
 We provide step-by-step instructions on how to train a custom model below, or if you like, how to [use the GUI](#using-the-gui) directly with one of our models.
 
+NEW: Side-by-side comparison videos: [OneDrive](https://nusu-my.sharepoint.com/:u:/r/personal/e1374097_u_nus_edu/Documents/cs5260-submission-files/results.zip?csf=1&web=1&e=TxLgGi)
+
 ## Installation
 
 The code is tested to run on linux with python 3.8, CUDA 12.6.
@@ -149,4 +151,6 @@ python infer_eval.py --cfg configs/lodge/lora_local_modern.yaml --cfg_assets con
 ```
 
 ## Using the GUI
-
+bash```
+streamlit run app.py
+```
