@@ -151,6 +151,7 @@ python infer_eval.py --cfg configs/lodge/lora_local_modern.yaml --cfg_assets con
 ```
 
 ## Using the GUI
-bash```
+
+```bash
 streamlit run app.py
 ```
