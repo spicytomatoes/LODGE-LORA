@@ -135,6 +135,13 @@ def parse_args(phase="train"):
             required=False,
             help="experiment directory (lora only)",
         )
+        group.add_argument(
+            "--music_path",
+            type=str,
+            required=False,
+            default="",
+            help="path to the .WAV file to do inference",
+        )
 
     if phase == "render":
         group.add_argument(
@@ -213,6 +220,7 @@ def parse_args(phase="train"):
         cfg.DEMO.OUTALL = params.allinone
         cfg.LORA_PATH = params.lora_path 
         cfg.EXP_DIR = params.exp_dir
+        cfg.MUSIC_PATH = params.music_path if params.music_path else None
         
         if params.name:
             cfg.NAME = params.name

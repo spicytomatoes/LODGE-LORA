@@ -7,7 +7,6 @@
   <title>Generate Dance Animation</title>
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Dropzone.js CSS Removed -->
   <style>
     /* Base body style */
     body {
@@ -25,7 +24,8 @@
       /* slate-200 */
       border-radius: 0.5rem;
       /* rounded-lg */
-      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+        0 1px 2px -1px rgba(0, 0, 0, 0.1);
       /* shadow-md */
     }
 
@@ -129,7 +129,8 @@
       /* text-sm */
       font-weight: 500;
       /* font-medium */
-      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      transition: background-color 0.2s ease, color 0.2s ease,
+        border-color 0.2s ease;
       cursor: pointer;
       border: 1px solid transparent;
     }
@@ -217,14 +218,13 @@
       border-bottom-right-radius: 0.375rem;
     }
 
-    /* Flash Message */
-    .flash-message {
+    /* Flash Message / Error Display */
+    .message-area {
       padding: 0.75rem 1rem;
       /* p-3 px-4 */
       margin-bottom: 1rem;
       /* mb-4 */
-      border: 1px solid #e2e8f0;
-      /* slate-200 */
+      border: 1px solid transparent;
       background-color: #f8fafc;
       /* slate-50 */
       color: #334155;
@@ -233,9 +233,35 @@
       /* rounded-md */
       font-size: 0.875rem;
       /* text-sm */
+      min-height: 40px;
+      /* Ensure it has some height even when empty */
+      display: none;
+      /* Hidden by default */
     }
 
-    .flash-message p {
+    .message-area.error {
+      background-color: #fef2f2;
+      /* red-50 */
+      border-color: #fca5a5;
+      /* red-300 */
+      color: #b91c1c;
+      /* red-700 */
+      display: block;
+      /* Show on error */
+    }
+
+    .message-area.success {
+      background-color: #eff6ff;
+      /* blue-50 */
+      border-color: #93c5fd;
+      /* blue-300 */
+      color: #1d4ed8;
+      /* blue-700 */
+      display: block;
+      /* Show on success message */
+    }
+
+    .message-area p {
       margin: 0;
     }
   </style>
@@ -247,88 +273,81 @@
       Generate Dance Animation
     </h1>
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages() %} {% if messages %}
-    <div class="flash-message" role="alert">
-      {% for message in messages %}
-      <p>{{ message }}</p>
-      {% endfor %}
+    <!-- Area for dynamic messages (AJAX success/error) -->
+    <div id="message-area" class="message-area" role="alert">
+      <p id="message-text"></p>
     </div>
-    {% endif %} {% endwith %}
 
     <!-- Input Mode Toggle -->
-
     <div class="mb-6 text-center">
       <div class="toggle-group w-[100%]" role="group">
         <button type="button" id="toggle-upload" class="flex w-[100%] btn btn-secondary active">
-          Upload
+          Upload Audio
         </button>
         <button type="button" id="toggle-select" class="flex w-[100%] btn btn-secondary">
-          Predefined
+          Select Predefined
         </button>
       </div>
     </div>
 
+    <!-- Single Form for Both Modes -->
+    <!-- Removed action attribute, submission handled by JS -->
+    <form id="generation-form" enctype="multipart/form-data">
+      <!-- Hidden input to track mode -->
+      <input type="hidden" name="input_mode" id="input-mode" value="upload" />
 
-    <!-- Upload Section (Standard Input) -->
-    <div id="upload-section" class="mb-4">
-      <form id="upload-form" method="post" action="{{ url_for('upload_and_generate') }}" enctype="multipart/form-data">
+      <!-- Upload Section -->
+      <div id="upload-section" class="mb-4">
         <label for="music-file-input" class="block text-sm font-medium text-slate-700 mb-1 text-center">
-          Upload a WAV or MP3 music file:
+          Upload a WAV music file:
         </label>
-        <input id="music-file-input" name="music_file" type="file" accept=".wav,.mp3" required class="input-file" />
-        <!-- Hidden input for genre, will be populated by JS -->
-        <input type="hidden" name="genre" id="upload-genre-hidden">
-      </form>
-    </div>
+        <!-- 'required' attribute will be managed by JS -->
+        <input id="music-file-input" name="music_file" type="file" accept=".wav" class="input-file" />
+      </div>
 
-    <!-- Select Predefined Section -->
-    <div id="select-section" class="hidden mb-4">
-      <form id="select-form" method="post" action="{{ url_for('upload_and_generate') }}">
-        <label for="preselected-audio" class="block text-sm font-medium text-slate-700 mb-1 text-center">Select a
-          preselected audio file:</label>
-        <select id="preselected-audio" name="selected_audio_path" class="input-base mb-6" <!-- Added margin bottom -->
-          >
+      <!-- Select Predefined Section -->
+      <div id="select-section" class="hidden mb-4">
+        <label for="preselected-audio" class="block text-sm font-medium text-slate-700 mb-1 text-center">
+          Select a predefined audio file:
+        </label>
+        <!-- 'required' attribute will be managed by JS -->
+        <select id="preselected-audio" name="selected_audio_path" class="input-base">
           <option value="" disabled selected>-- Select Audio --</option>
-          <!-- Example Options: Populate this from Flask ideally -->
-          <option value="preselected_audio/song1.mp3">
-            Song 1 (Pop Example)
-          </option>
-          <option value="preselected_audio/song2.wav">
-            Song 2 (Electronic Example)
-          </option>
-          <!-- Add more options here -->
+          {% for audio_file in predefined_audio_files %}
+          <option value="{{ audio_file }}">{{ audio_file }}</option>
+          {% else %}
+          <option value="" disabled>No predefined files found</option>
+          {% endfor %}
         </select>
-        <!-- Hidden input for genre, will be populated by JS -->
-        <input type="hidden" name="genre" id="select-genre-hidden">
-      </form>
-    </div>
+      </div>
 
-    <!-- Genre Selection (Common for both modes) -->
-    <div class="mb-6">
-      <label for="genre-select" class="block text-sm font-medium text-slate-700 mb-1 text-center">Select Genre:</label>
-      <select id="genre-select" class="input-base" name="genre_selector" <!-- Changed name to avoid conflict if forms
-        submitted directly -->
-        >
-        <option value="" disabled selected>-- Select Genre --</option>
-        <option value="pop">Pop</option>
-        <option value="rock">Rock</option>
-        <option value="jazz">Jazz</option>
-        <option value="electronic">Electronic</option>
-      </select>
-    </div>
+      <!-- Genre Selection (Common for both modes) -->
+      <div class="mb-6">
+        <label for="genre-select" class="block text-sm font-medium text-slate-700 mb-1 text-center">
+          Select Genre:
+        </label>
+        <select id="genre-select" name="genre" class="input-base" required>
+          <option value="" disabled selected>-- Select Genre --</option>
+          <option value="kpop">K-Pop</option>
+          <option value="chinese">Chinese Dance</option>
+          <option value="ballet">Ballet</option>
+          <option value="modern">Modern Dance</option>
+        </select>
+      </div>
 
-    <!-- Generate Button -->
-    <div class="text-center">
-      <button id="generate-button" type="button" class="btn btn-primary w-full sm:w-auto" disabled>
-        Generate
-      </button>
-    </div>
+      <!-- Generate Button (Type Button to prevent default submit) -->
+      <div class="text-center">
+        <button id="generate-button" type="button" class="btn btn-primary w-full sm:w-auto" disabled>
+          Generate
+        </button>
+      </div>
+    </form>
 
-    <p class="mt-6 text-xs text-slate-500 text-center">Powered by LODGE-LORA</p>
+    <p class="mt-6 text-xs text-slate-500 text-center">
+      Powered by LODGE-LORA
+    </p>
   </div>
 
-  <!-- Dropzone.js JS Removed -->
   <script>
     const uploadButton = document.getElementById("toggle-upload");
     const selectButton = document.getElementById("toggle-select");
@@ -338,23 +357,37 @@
     const musicFileInput = document.getElementById("music-file-input");
     const preselectedAudio = document.getElementById("preselected-audio");
     const genreSelect = document.getElementById("genre-select");
-    const uploadForm = document.getElementById("upload-form");
-    const selectForm = document.getElementById("select-form");
-    const uploadGenreHidden = document.getElementById("upload-genre-hidden");
-    const selectGenreHidden = document.getElementById("select-genre-hidden");
-
+    const generationForm = document.getElementById("generation-form");
+    const inputModeHidden = document.getElementById("input-mode");
+    const messageArea = document.getElementById("message-area");
+    const messageText = document.getElementById("message-text");
 
     let isUploadMode = true; // Start in upload mode
+
+    function showMessage(message, isError = false) {
+      messageText.textContent = message;
+      messageArea.className = `message-area ${isError ? "error" : "success"}`; // Apply error/success class
+      messageArea.style.display = "block"; // Make sure it's visible
+    }
+
+    function hideMessage() {
+      messageArea.style.display = "none";
+      messageText.textContent = "";
+      messageArea.className = "message-area"; // Reset classes
+    }
 
     function checkGenerateButtonState() {
       const genreSelected = genreSelect.value !== "";
       let audioReady = false;
 
       if (isUploadMode) {
-        // Check if the file input has a file selected
         audioReady = musicFileInput && musicFileInput.files.length > 0;
+        musicFileInput.required = true;
+        preselectedAudio.required = false;
       } else {
         audioReady = preselectedAudio.value !== "";
+        musicFileInput.required = false;
+        preselectedAudio.required = true;
       }
 
       generateButton.disabled = !(audioReady && genreSelected);
@@ -364,12 +397,13 @@
     uploadButton.addEventListener("click", () => {
       if (!isUploadMode) {
         isUploadMode = true;
+        inputModeHidden.value = "upload";
         uploadButton.classList.add("active");
         selectButton.classList.remove("active");
         uploadSection.classList.remove("hidden");
         selectSection.classList.add("hidden");
-        // Reset the other input type if needed (optional)
-        // preselectedAudio.value = "";
+        preselectedAudio.value = "";
+        hideMessage(); // Hide any previous messages
         checkGenerateButtonState();
       }
     });
@@ -377,71 +411,111 @@
     selectButton.addEventListener("click", () => {
       if (isUploadMode) {
         isUploadMode = false;
+        inputModeHidden.value = "select";
         uploadButton.classList.remove("active");
         selectButton.classList.add("active");
         uploadSection.classList.add("hidden");
         selectSection.classList.remove("hidden");
-        // Reset the other input type if needed (optional)
-        // musicFileInput.value = null; // Clear file input
+        musicFileInput.value = null;
+        hideMessage(); // Hide any previous messages
         checkGenerateButtonState();
       }
     });
 
     // --- Event Listeners for Enabling Generate Button ---
-    musicFileInput.addEventListener("change", checkGenerateButtonState);
-    preselectedAudio.addEventListener("change", checkGenerateButtonState);
-    genreSelect.addEventListener("change", checkGenerateButtonState);
+    musicFileInput.addEventListener("change", () => {
+      hideMessage();
+      checkGenerateButtonState();
+    });
+    preselectedAudio.addEventListener("change", () => {
+      hideMessage();
+      checkGenerateButtonState();
+    });
+    genreSelect.addEventListener("change", () => {
+      hideMessage();
+      checkGenerateButtonState();
+    });
 
-    // --- Generate Button Logic ---
+    // --- Generate Button Click Handler (AJAX Submission) ---
     generateButton.addEventListener("click", function () {
-      const selectedGenre = genreSelect.value;
-      if (!selectedGenre) {
-        alert("Please select a genre."); // Basic validation
+      // Basic validation check
+      if (!genreSelect.value) {
+        showMessage("Please select a genre.", true);
+        genreSelect.focus();
+        return;
+      }
+      if (
+        isUploadMode &&
+        (!musicFileInput.files || musicFileInput.files.length === 0)
+      ) {
+        showMessage("Please select a music file to upload.", true);
+        musicFileInput.focus();
+        return;
+      }
+      if (!isUploadMode && !preselectedAudio.value) {
+        showMessage("Please select a predefined audio file.", true);
+        preselectedAudio.focus();
         return;
       }
 
-      generateButton.disabled = true; // Disable button during processing
+      // Disable button and show processing state
+      generateButton.disabled = true;
       generateButton.textContent = "Processing...";
+      hideMessage(); // Clear previous messages
 
-      if (isUploadMode) {
-        // Ensure a file is actually selected
-        if (!musicFileInput || musicFileInput.files.length === 0) {
-          alert("Please upload an audio file.");
+      // Prepare form data
+      const formData = new FormData(generationForm);
+
+      // Send data using fetch
+      fetch("{{ url_for('upload_and_generate') }}", {
+        // Use the Flask URL generator
+        method: "POST",
+        body: formData, // FormData handles multipart/form-data automatically
+      })
+        .then((response) => {
+          // Check if response is ok (status in the range 200-299)
+          if (!response.ok) {
+            // Try to parse error JSON, fallback to status text
+            return response
+              .json()
+              .catch(() => {
+                throw new Error(
+                  `Server responded with status: ${response.status} ${response.statusText}`
+                );
+              })
+              .then((errData) => {
+                // Throw an error with the message from backend JSON if available
+                throw new Error(
+                  errData.error || `Server error: ${response.status}`
+                );
+              });
+          }
+          return response.json(); // Parse JSON body of the response
+        })
+        .then((data) => {
+          // Handle success - expecting { job_id: '...' }
+          if (data.job_id) {
+            // Redirect to the results page
+            window.location.href = `/results/${data.job_id}`;
+          } else {
+            // Unexpected success response format
+            throw new Error(
+              "Received an unexpected response from the server."
+            );
+          }
+        })
+        .catch((error) => {
+          // Handle errors (network error or error thrown above)
+          console.error("Submission error:", error);
+          showMessage(`Error: ${error.message}`, true); // Display error message
+          // Re-enable button and restore text
           generateButton.disabled = false;
           generateButton.textContent = "Generate";
-          return;
-        }
-        // Set the hidden genre input value
-        uploadGenreHidden.value = selectedGenre;
-        console.log(
-          "Upload mode: Submitting form with file and genre:",
-          selectedGenre
-        );
-        uploadForm.submit(); // Submit the form containing the file input
-
-      } else {
-        // Select mode
-        const selectedAudioPath = preselectedAudio.value;
-        if (!selectedAudioPath) {
-          alert("Please select a preselected audio file.");
-          generateButton.disabled = false; // Re-enable
-          generateButton.textContent = "Generate";
-          return;
-        }
-        // Set the hidden genre input value
-        selectGenreHidden.value = selectedGenre;
-        console.log(
-          "Select mode: Submitting form with selected audio and genre:",
-          selectedAudioPath,
-          selectedGenre
-        );
-        selectForm.submit(); // Submit the form containing the select dropdown
-      }
+        });
     });
 
-    // Initial check
-    checkGenerateButtonState();
-
+    // Initial check and setup
+    checkGenerateButtonState(); // Set initial button state and required fields
   </script>
 </body>
 
