@@ -91,13 +91,13 @@ LODGE
 
 ### Inference
 
-[Download our LORA models](LINK TO lora_outputs.zip) and put under the root directory.
+[Download our LORA models](https://nusu-my.sharepoint.com/:u:/g/personal/e1374097_u_nus_edu/Eac63-6wdFVIkRRmfv6Iu9gBDDzJARl9Md_o-nxXiRyaQA?e=F3LkWz) and put under the root directory.
 
 TODO: Single file inference script?
 
 ### Evaluation
 
-[Donwload our datasets](LINK TO PROCESSED DATASET) and put the contents under `/data/`.
+[Donwload our datasets](https://nusu-my.sharepoint.com/:u:/g/personal/e1374097_u_nus_edu/EZi-ZJ8WCpJLgdU0SIPwywwBvjvhF78ycK4enyOOts8mOQ?e=Yxldog) and put the contents under `/data/`.
 
 The folder structure should be:
 ```bash
