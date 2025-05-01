@@ -3,13 +3,6 @@ Most existing music-to-dance generation research relies heavily on the AIST++ da
 
 We provide step-by-step instructions on how to train a custom model below, or if you like, how to [use the GUI](#using-the-gui) directly with one of our models.
 
-## 📌 Acknowledgement
-
-This project is built upon the [LODGE (Long Dance Generation)](https://github.com/li-ronghui/LODGE) codebase by Li et al.  
-We would like to thank the original authors for their excellent work and open-source contributions.  
-If you find this repository useful, please also consider citing the original LODGE paper and acknowledging their repository.
-
-
 ## Installation
 
 The code is tested to run on linux with python 3.8, CUDA 12.6.
@@ -85,6 +78,17 @@ Prepare the asset and training configs for your dataset. You can see the example
 python train.py --cfg configs/lodge/your_training_config.yaml --cfg_assets configs/data/your_asset_config.yaml
 ```
 
+The folder structure should be:
+```bash
+LODGE
+├── lora_outputs
+│   ├── ballet
+│   ├── chinese
+│   ├── kpop
+│   ├── modern
+...
+```
+
 ### Inference
 
 [Download our LORA models](LINK TO lora_outputs.zip) and put under the root directory.
@@ -94,6 +98,18 @@ TODO: Single file inference script?
 ### Evaluation
 
 [Donwload our datasets](LINK TO PROCESSED DATASET) and put the contents under `/data/`.
+
+The folder structure should be:
+```bash
+LODGE
+├── data
+│   ├── finedance-ballet
+│   ├── finedance-chinese
+│   ├── finedance-kpop
+│   ├── finedance-modern
+│   ├── ...
+...
+```
 
 ```bash
 # Ballet
