@@ -46,6 +46,32 @@ This will create a folder with the same name as the *.txt* file containing all t
 
 ### Extracting poses from videos
 
+Since the dataset format follows the [FineDance](https://github.com/li-ronghui/FineDance) dataset format, it consists of the following directories:
+
+```bash
+├──label_json   # Contains the metadata of each sample in the dataset
+├──motion       # Contains the motion data
+├──music_npy    # Contains music features
+├──music_wav    # Contains music audio
+```
+
+The `music_wav` and `music_npy` files can be easily generated from a video using `ffmpeg` and `librosa`, respectively. However, generating the motion data requires using an SMPL-X pose estimation model to output the necessary parameters. We decided to use [SMPLest-X](https://github.com/SMPLCap/SMPLest-X), as it is a state-of-the-art model for estimating 3D human pose in SMPL-X format.
+
+
+For dataset generation, we used `ffmpeg` to convert videos into a sequence of images. These images were then passed through the YOLOv8 model to detect humans in each frame. The detected human images were fed into the SMPLest-X model to output a set of motion parameters required for the `motion` data.
+
+The outputs from SMPLest-X — including `cam_trans`, `root_pose`, `global_orient`, `lhand_pose`, and `rhand_pose` — were converted into `rot6d` format to match the `FineDance` dataset specification.
+
+However, we encountered some issues during data preprocessing:
+- Converting `cam_trans` to `root_trans` was unclear due to missing camera information.
+- Some frames were missing due to YOLOv8 failing to detect humans in certain images.
+
+
+To address these problems, we explored several approaches. One attempt involved using another pose estimation model, [MediaPipe](https://github.com/google-ai-edge/mediapipe), and estimating the x, y, and z translation parameters using the relative position of the pelvis and the lowest point of the estimated pose. However, this approach produced unstable results. Ultimately, we opted to manually tune the camera parameters (such as focal length and principal point) in the configuration file to estimate the `root_trans` values.
+
+For the missing frames, we applied interpolation methods to fill in the gaps. Simply removing the frames would have caused misalignment between the music and motion, resulting in an unsynchronized and lower-quality dataset.
+
+
 ### Preprocess Pose
 Run preprocessing script on your dataset.
 ```bash
