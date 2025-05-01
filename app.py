@@ -3,12 +3,13 @@ import os
 from pathlib import Path
 import tempfile
 import time
+from glob import glob
 
 from run_demo import generate_render_combine
 
 # Set page configuration
 st.set_page_config(
-    page_title="Audio to Video Generator",
+    page_title="LODGE LORA",
     page_icon="🎵",
     layout="wide"
 )
@@ -34,37 +35,62 @@ def generate_video(audio_path, genre):
     Here we're simulating the process with a progress bar.
     """
     # Create output path
+
+    audio_path = audio_path.split('/')[-1]
+
+    print('audio_path', audio_path)
+
     generate_render_combine(audio_path, genre)
+
+    file_name = audio_path.split('.')[0]
+    mp4_name = file_name + '.mp4'
+
+    output_path = f'demo/{mp4_name}'
+    timeout = 180  # seconds
+    start_time = time.time()
+    while not os.path.exists(output_path):
+        print("Generating")
+        if time.time() - start_time > timeout:
+            raise TimeoutError(f"Video generation timed out after {timeout} seconds")
+        time.sleep(5)
+
+    return output_path
 
 def main():
     st.title("LODGE LORA")
     
     # Create two columns
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns([0.6, 0.1, 0.3])
     
-    with col3:
+    # with col3:
+        
+    with col1:
+
         genre = st.selectbox("Choose Genre", ["ballet", "chinese", "kpop", "modern"])
 
-    with col1:
+
         st.subheader("Upload New Audio")
         uploaded_file = st.file_uploader("Choose an audio file", type=["wav"])
         
         if uploaded_file is not None:
+            
             # Save the file
             file_path = save_uploaded_file(uploaded_file)
             st.success(f"File uploaded successfully: {uploaded_file.name}")
+
+            st.rerun()
             
-            # Option to generate video from the just-uploaded file
-            if st.button("Generate Video from Uploaded Audio"):
-                with st.spinner("Generating video..."):
-                    video_path = generate_video(file_path, genre)
-                    st.success("Video generated successfully!")
+            # # Option to generate video from the just-uploaded file
+            # if st.button("Generate Video from Uploaded Audio"):
+            #     with st.spinner("Generating video..."):
+            #         video_path = generate_video(file_path, genre)
+            #         st.success("Video generated successfully!")
                     
-                    # Display the video
-                    st.subheader("Generated Video")
-                    st.video(video_path)
+            #         # Display the video
+            #         st.subheader("Generated Video")
+            #         st.video(video_path)
     
-    with col2:
+    # with col2:
         st.subheader("Select from Existing Audio Files")
         
         # Get list of audio files in the upload directory
@@ -90,18 +116,20 @@ def main():
                     st.subheader("Generated Video")
                     st.video(video_path)
 
-    # Add a section to display previously generated videos
-    st.subheader("Previously Generated Videos")
-    videos = [f for f in os.listdir(OUTPUT_DIR) if os.path.isfile(os.path.join(OUTPUT_DIR, f))
-              and f.lower().endswith('.mp4')]
-    
 
-    if not videos:
-        st.info("No videos have been generated yet.")
-    else:
-        selected_video = st.selectbox("Select a video to view", videos)
-        selected_video_path = os.path.join(OUTPUT_DIR, selected_video)
-        st.video(selected_video_path)
+    with col3:
+        # Add a section to display previously generated videos
+        st.subheader("Previously Generated Videos")
+        videos = [f for f in os.listdir(OUTPUT_DIR) if os.path.isfile(os.path.join(OUTPUT_DIR, f))
+                and f.lower().endswith('.mp4')]
+        
+
+        if not videos:
+            st.info("No videos have been generated yet.")
+        else:
+            selected_video = st.selectbox("Select a video to view", videos)
+            selected_video_path = os.path.join(OUTPUT_DIR, selected_video)
+            st.video(selected_video_path)
 
 if __name__ == "__main__":
     main()
