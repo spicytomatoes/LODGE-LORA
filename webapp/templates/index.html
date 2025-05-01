@@ -270,7 +270,7 @@
 <body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
   <div class="card p-6 sm:p-8 w-full max-w-lg">
     <h1 class="text-xl sm:text-2xl font-semibold mb-6 text-center text-slate-900">
-      Generate Dance Animation
+      Generate Dance Animation 2
     </h1>
 
     <!-- Area for dynamic messages (AJAX success/error) -->
@@ -466,18 +466,27 @@
       // Prepare form data
       const formData = new FormData(generationForm);
 
+      // Use a relative URL path instead of hardcoded absolute URL
+      // This allows the code to work regardless of where it's hosted
+      const backendUrl = '/upload';
+
       // Send data using fetch
-      fetch("{{ url_for('upload_and_generate') }}", {
-        // Use the Flask URL generator
-        method: "POST",
-        body: formData, // FormData handles multipart/form-data automatically
+      fetch(backendUrl, {
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type header manually - let the browser set it with the boundary
+        // needed for multipart/form-data with files
       })
-        .then((response) => {
+        .then(response => {
+          // First check if response exists
+          if (!response) {
+            throw new Error("No response received from server");
+          }
+
           // Check if response is ok (status in the range 200-299)
           if (!response.ok) {
             // Try to parse error JSON, fallback to status text
-            return response
-              .json()
+            return response.json()
               .catch(() => {
                 throw new Error(
                   `Server responded with status: ${response.status} ${response.statusText}`
@@ -490,12 +499,13 @@
                 );
               });
           }
-          return response.json(); // Parse JSON body of the response
+          // Parse JSON body of the response
+          return response.json();
         })
         .then((data) => {
           // Handle success - expecting { job_id: '...' }
-          if (data.job_id) {
-            // Redirect to the results page
+          if (data && data.job_id) {
+            // Redirect to the results page using relative path
             window.location.href = `/results/${data.job_id}`;
           } else {
             // Unexpected success response format

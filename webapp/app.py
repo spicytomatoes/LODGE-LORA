@@ -111,14 +111,14 @@ def run_generation_and_render(job_id, music_path_abs, job_output_dir_abs, genre,
 
         # --- === 2. Construct Command === ---
         cmd_infer = [
-            sys.executable,        # Use the same python interpreter that runs Flask
+            sys.executable,       
             infer_script_path,
             '--cfg', cfg_path,
             '--cfg_assets', cfg_assets_path,
             '--soft', soft_guidance, # Use the passed soft_guidance value
             '--music_path', music_path_abs, # Absolute path to the music file (in raw_uploads or predefined)
             '--out_dir', job_output_dir_abs,   # Absolute path to the job-specific output directory
-            '--device', device_id,     # Specify the GPU device
+            # '--device', device_id,     # Specify the GPU device
         ]
         print(f"Job {job_id}: Running command: {' '.join(cmd_infer)}")
 

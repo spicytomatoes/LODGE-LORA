@@ -240,17 +240,18 @@ def test(cfg):
         music_list = os.listdir(music_dir)
 
     for file in music_list:
+        print(f"file: {file}")
         flag = 0
-        if not file.split(".")[0] in test_list:
-            continue
+        # if not file.split(".")[0] in test_list:
+        #     continue
 
         file_name = file[:-4]
         if cfg.MUSIC_PATH:
-            music_dir = "./static/uploads"
+            music_dir = "./demo/audio"
 
         mufile = os.path.join(music_dir, file)
         
-        print("mufile", mufile)
+        print(f"mufile: {mufile}")
 
         if cfg.DEMO.use_cached_features:     # cfg.DEMO.use_cached_features:
             music_fea_full = np.load(mufile)
@@ -345,18 +346,15 @@ def test(cfg):
             molist_cat += molist
 
 
-        print("file ", file)
-        genre = music2genre_[file.split(".")[0]]
+        # print("file ", file)
+        # genre = music2genre_[file.split(".")[0]]
         
-        if cfg.IS_FINETUNE:
-            if cfg.LORA_PATH is not None:
-                genre = np.array(16)
-            else:
-                # testing base model on LORA dataset, use genre id = 0 as default
-                print("Testing base model on LORA dataset, use genre id = 0 as default")
-                genre = np.array(0)
+        if cfg.LORA_PATH is not None:
+            genre = np.array(16)
         else:
-            genre = np.array(Genres_fd[genre])
+            # testing base model on LORA dataset, use genre id = 0 as default
+            print("Testing base model on LORA dataset, use genre id = 0 as default")
+            genre = np.array(0)
             
         genre = torch.from_numpy(genre).unsqueeze(0)
 

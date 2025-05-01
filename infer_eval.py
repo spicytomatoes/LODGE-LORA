@@ -31,6 +31,8 @@ from dld.data.FineDance_dataset import music2genre, Genres_fd
 from lora.patch_lora import patch_local
 
 from metric.metrics_finedance import quantized_metrics, calc_and_save_feats
+from metric.beat_align_score_ import calc_ba_score
+from metric.foot_skating import calc_foot_skating_ratio_folder
 
 
 def swap_left_right(data):   
@@ -426,36 +428,56 @@ if __name__ == "__main__":
     for lora_path in loras:    
         cfg.LORA_PATH = os.path.join(lora_dir, lora_path)
         output_dir = os.path.join(output_parent_dir, lora_path.split('.')[0])
-        test(cfg, output_dir)
-        concat_res(output_dir)
         pred_root = os.path.join(output_dir, 'concat', 'npy')
-        calc_and_save_feats(pred_root, test_list_npy)
-        print(f"inference done for {lora_path}")
+        
+        if not os.path.exists(pred_root):
+            test(cfg, output_dir)
+            concat_res(output_dir)
+            calc_and_save_feats(pred_root, test_list_npy)
+            print(f"inference done for {lora_path}")
         
         # evaluate lora
         pred_features_k = [np.load(os.path.join(pred_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'kinetic_features'))]
         pred_features_m = [np.load(os.path.join(pred_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'manual_features_new'))] 
 
         metrics[lora_path] = quantized_metrics(pred_features_k, gt_freatures_k, pred_features_m, gt_freatures_m)
+        ba_score = calc_ba_score(pred_root, music_dir, test_list)
+        metrics[lora_path]['ba'] = ba_score
+        # foot_skating_ratio = calc_foot_skating_ratio_folder(pred_root, test_list)
+        # metrics[lora_path]['fsr'] = foot_skating_ratio
+        
         print(f"metrics for {lora_path}: {metrics[lora_path]}")
         
     # base model
     cfg.LORA_PATH = None
     output_dir = os.path.join(output_parent_dir, "base_model")
-    test(cfg, output_dir)
-    concat_res(output_dir)
     pred_root = os.path.join(output_dir, 'concat', 'npy')
-    calc_and_save_feats(pred_root, test_list_npy)
-    print("inference done for base model")
+    
+    if not os.path.exists(pred_root):
+        test(cfg, output_dir)
+        concat_res(output_dir)
+        
+        calc_and_save_feats(pred_root, test_list_npy)
+        print("inference done for base model")
     
     # Evaluate base model
     pred_features_k = [np.load(os.path.join(pred_root, 'kinetic_features', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'kinetic_features'))]
     pred_features_m = [np.load(os.path.join(pred_root, 'manual_features_new', pkl)) for pkl in os.listdir(os.path.join(pred_root, 'manual_features_new'))]
     metrics["base_model"] = quantized_metrics(pred_features_k, gt_freatures_k, pred_features_m, gt_freatures_m)
     
+    ba_score = calc_ba_score(pred_root, music_dir, test_list)
+    metrics["base_model"]['ba'] = ba_score
+    # foot_skating_ratio = calc_foot_skating_ratio_folder(pred_root, test_list)
+    # metrics["base_model"]['fsr'] = foot_skating_ratio
+    
     print(f"metrics for base model: {metrics['base_model']}")
     print("------------ METRIC SUMMARY ------------")
     print("metrics", metrics)
     
+    # save metrics as csv
+    import pandas as pd
+    metrics_df = pd.DataFrame(metrics).T
+    metrics_df.to_csv(os.path.join(output_parent_dir, f"metrics_{cfg.NAME}.csv"), index=True)
+    print("metrics saved to csv")
     
     
